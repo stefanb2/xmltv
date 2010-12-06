@@ -28,10 +28,24 @@ my %Option = (
 
 # Process command line options
 if (GetOptions(\%Option,
-	       "help|h|?")) {
+	       "configure",
+	       "help|h|?",
+	       "list-channels")) {
 
   if ($Option{help}) {
     pod2usage(-verbose => 2);
+
+  } elsif ($Option{configure}) {
+    # Configure mode
+    print STDERR "NOT IMPPLEMENTED YET...\n";
+
+  } elsif ($Option{'list-channels'}) {
+    # List channels mode
+    print STDERR "NOT IMPPLEMENTED YET...\n";
+
+  } else {
+    # Grab mode (default)
+    print STDERR "NOT IMPPLEMENTED YET...\n";
   }
 } else {
   pod2usage(2);
