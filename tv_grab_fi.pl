@@ -8,6 +8,10 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
+# Perl core modules
+use Getopt::Long;
+use Pod::Usage;
+
 # XMLTV modules
 use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
 use XMLTV::Capabilities qw(baseline manualconfig cache);
@@ -18,6 +22,20 @@ use XMLTV::Description 'Finland ()';
 # Main program
 #
 ###############################################################################
+# Command line option default values
+my %Option = (
+	     );
+
+# Process command line options
+if (GetOptions(\%Option,
+	       "help|h|?")) {
+
+  if ($Option{help}) {
+    pod2usage(-verbose => 2);
+  }
+} else {
+  pod2usage(2);
+}
 
 # That's all folks
 exit 0;
@@ -32,7 +50,7 @@ __END__
 
 =head1 NAME
 
-tv_grab_fi - Grab TV listings for Finland.
+tv_grab_fi - Grab TV listings for Finland
 
 =head1 SYNOPSIS
 
@@ -111,7 +129,7 @@ Show the version of this grabber.
 
 File name to write the configuration to.
 
-Default is C<$HOME/.xmltv/tv_grab_fi.conf>.
+Default is F<$HOME/.xmltv/tv_grab_fi.conf>.
 
 =item B<--gui [OPTION]>
 
@@ -149,7 +167,7 @@ using the same data.
 
 File name to read the configuration from.
 
-Default is C<$HOME/.xmltv/tv_grab_fi.conf>.
+Default is F<$HOME/.xmltv/tv_grab_fi.conf>.
 
 =item B<--days C<N>>
 
