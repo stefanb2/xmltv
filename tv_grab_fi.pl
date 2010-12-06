@@ -8,6 +8,11 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
+# XMLTV modules
+use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
+use XMLTV::Capabilities qw(baseline manualconfig cache);
+use XMLTV::Description 'Finland ()';
+
 ###############################################################################
 #
 # Main program
