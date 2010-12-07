@@ -12,10 +12,28 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 
+# Load internal modules
+use File::Basename;
+use FindBin qw($Bin $Script);
+my @sources;
+BEGIN {
+  my $basename = basename($Script, ".pl");
+  foreach my $source (<$Bin/$basename/source/*.pm>) {
+    require "$source";
+  }
+  @sources = map { s/::$//; $_ }
+    map { $basename . "::source::" . $_ }
+    sort
+    keys %{ $::{$basename . "::"}->{'source::'} };
+  die "$0: couldn't find any source modules?" unless @sources;
+}
+
 # XMLTV modules
 use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
 use XMLTV::Capabilities qw(baseline manualconfig cache);
-use XMLTV::Description 'Finland ()';
+use XMLTV::Description 'Finland (' .
+  join(', ', map { $_->description() } @sources ) .
+  ')';
 
 ###############################################################################
 #
@@ -32,10 +50,11 @@ if (GetOptions(\%Option,
 	       "help|h|?",
 	       "list-channels")) {
 
-  if ($Option{help}) {
-    pod2usage(-verbose => 2);
+  pod2usage(-exitstatus => 0,
+	    -verbose => 2)
+    if $Option{help};
 
-  } elsif ($Option{configure}) {
+  if ($Option{configure}) {
     # Configure mode
     print STDERR "NOT IMPPLEMENTED YET...\n";
 
