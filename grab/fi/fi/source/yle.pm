@@ -6,8 +6,8 @@
 #
 # Setup
 #
-###############################################################################
-package tv_grab_fi::source::yle;
+# INSERT FROM HERE ############################################################
+package fi::source::yle;
 
 # Description
 sub description { 'yle.fi' }

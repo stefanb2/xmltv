@@ -8,23 +8,34 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
+###############################################################################
+# INSERT: SOURCES
+###############################################################################
+package main;
+
 # Perl core modules
 use Getopt::Long;
 use Pod::Usage;
 
+# CUT CODE START
+###############################################################################
 # Load internal modules
-use File::Basename;
-use FindBin qw($Bin $Script);
-my @sources;
+use FindBin qw($Bin);
 BEGIN {
-  my $basename = basename($Script, ".pl");
-  foreach my $source (<$Bin/$basename/source/*.pm>) {
+  foreach my $source (<$Bin/fi/source/*.pm>) {
     require "$source";
   }
+}
+###############################################################################
+# CUT CODE END
+
+# Generate source module list
+my @sources;
+BEGIN {
   @sources = map { s/::$//; $_ }
-    map { $basename . "::source::" . $_ }
+    map { "fi::source::" . $_ }
     sort
-    keys %{ $::{$basename . "::"}->{'source::'} };
+    keys %{ $::{'fi::'}->{'source::'} };
   die "$0: couldn't find any source modules?" unless @sources;
 }
 

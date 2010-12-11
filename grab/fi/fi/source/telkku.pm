@@ -6,8 +6,8 @@
 #
 # Setup
 #
-###############################################################################
-package tv_grab_fi::source::telkku;
+# INSERT FROM HERE ############################################################
+package fi::source::telkku;
 
 # Description
 sub description { 'telkku.com' }
