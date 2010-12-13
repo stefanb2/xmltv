@@ -16,8 +16,8 @@ open(my $ofh, ">", "$dir/tv_grab_fi")
   or die "can't open output file: $!";
 
 # source modules
-my @sources = sort <$dir/fi/source/*.pm>;
-print "Found source modules: ", map({ basename($_) . " " } @sources), "\n";
+my @sources = ( sort(<$dir/fi/*.pm>), sort(<$dir/fi/source/*.pm>));
+print "Found modules: ", map({ basename($_) . " " } @sources), "\n";
 
 # open main script
 open(my $ifh, "<", "$dir/tv_grab_fi.pl")
@@ -29,17 +29,28 @@ while (<$ifh>) {
   # insert marker for source modules
   if (/^# INSERT: SOURCES/) {
 
-      foreach my $source (@sources) {
-	open(my $sfh, "<", $source)
-	  or die "can't open source module '$source': $!";
-	print "Inserting source module '", basename($source), "'\n";
-	while (<$sfh>) {
-	  next if 1../^# INSERT FROM HERE /;
-	  print $ofh $_;
-	}
-	close($sfh);
-	print $ofh "###############################################################################\n";
+    print $ofh <<END_OF_MERGE_TEXT;
+#
+#                   This is the merged version of the script.
+#
+#                !!! DO NOT EDIT - YOUR CHANGES WILL BE LOST !!!
+#
+#          Any changes should be done to the original modules instead.
+#
+###############################################################################
+END_OF_MERGE_TEXT
+
+    foreach my $source (@sources) {
+      open(my $sfh, "<", $source)
+	or die "can't open source module '$source': $!";
+      print "Inserting module '", basename($source), "'\n";
+      while (<$sfh>) {
+	next if 1../^# INSERT FROM HERE /;
+	print $ofh $_;
       }
+      close($sfh);
+      print $ofh "\n###############################################################################\n";
+    }
 
   # insert marker for source modules
   } elsif (/^# CUT CODE START/../^# CUT CODE END/) {
