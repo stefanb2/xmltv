@@ -22,7 +22,7 @@ use Pod::Usage;
 # Load internal modules
 use FindBin qw($Bin);
 BEGIN {
-  foreach my $source (<$Bin/fi/source/*.pm>) {
+  foreach my $source (<$Bin/fi/*.pm>, <$Bin/fi/source/*.pm>) {
     require "$source";
   }
 }
@@ -39,6 +39,9 @@ BEGIN {
   die "$0: couldn't find any source modules?" unless @sources;
 }
 
+# Import from internal modules
+fi::common->import(':main');
+
 # XMLTV modules
 use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
 use XMLTV::Capabilities qw(baseline manualconfig cache);
@@ -53,17 +56,24 @@ use XMLTV::Description 'Finland (' .
 ###############################################################################
 # Command line option default values
 my %Option = (
+	      quiet => 0,
+	      debug => 0,
 	     );
 
 # Process command line options
 if (GetOptions(\%Option,
 	       "configure",
+	       "debug|d+",
 	       "help|h|?",
-	       "list-channels")) {
+	       "list-channels",
+	       "quiet")) {
 
   pod2usage(-exitstatus => 0,
 	    -verbose => 2)
     if $Option{help};
+
+  setDebug($Option{debug});
+  setQuiet($Option{quiet});
 
   if ($Option{configure}) {
     # Configure mode
