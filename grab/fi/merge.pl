@@ -46,6 +46,7 @@ END_OF_MERGE_TEXT
       print "Inserting module '", basename($source), "'\n";
       while (<$sfh>) {
 	next if 1../^# INSERT FROM HERE /;
+	next if /^__END__/..0; # right side always false -> cut to the end
 	print $ofh $_;
       }
       close($sfh);
