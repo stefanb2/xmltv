@@ -31,7 +31,17 @@ sub grab {
   my $root = fetchTree($url);
   if ($root) {
 
-    # Traverse down the HTML tree for the programme data
+    #
+    # All program info is contained within a unsorted list with class "programList"
+    #
+    #  <ul class="programList">
+    #   <li>
+    #    <span class="programDate"><a href="http://www.telkku.com/program/show/2010112621451">23:45&nbsp;Uutisikkuna</a></span><br />
+    #    <span class="programDescription">...</span>
+    #   </li>
+    #   ...
+    #  </ul>
+    #
     if (my $container = $root->look_down("class" => "programList")) {
       if (my @programmes = $container->find("li")) {
 	foreach my $programme (@programmes) {
@@ -40,12 +50,17 @@ sub grab {
 	  if ($date && $desc) {
 	    my $href = $date->find("a");
 	    if ($href) {
+
+	      # Extract texts from HTML elements. Entities are already decoded.
 	      $date = $href->as_text();
 	      $desc = $desc->as_text();
+
 	      # Use "." to match &nbsp; character (it's not included in \s?)
 	      if (my($start, $title) = $date =~ /^(\d{2}:\d{2}).(.+)/) {
 		debug(3, "Programme $channel ($start) $title");
 		debug(4, $desc);
+
+		# TBA...
 	      }
 	    }
 	  }
