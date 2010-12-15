@@ -8,6 +8,8 @@
 #
 # INSERT FROM HERE ############################################################
 package fi::source::yle;
+use strict;
+use warnings;
 
 # Import from internal modules
 fi::common->import();

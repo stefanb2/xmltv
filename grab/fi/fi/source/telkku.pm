@@ -8,6 +8,8 @@
 #
 # INSERT FROM HERE ############################################################
 package fi::source::telkku;
+use strict;
+use warnings;
 
 # Import from internal modules
 fi::common->import();
@@ -21,6 +23,39 @@ sub grab {
 
   # Get channel number from XMLTV id
   return unless my($channel) = ($id =~ /^(\d+)\.telkku\.com$/);
+
+  # Generate day URL
+  my $url = "http://www.telkku.com/channel/list/$channel/$today";
+
+  # Fetch & parse HTML
+  my $root = fetchTree($url);
+  if ($root) {
+
+    # Traverse down the HTML tree for the programme data
+    if (my $container = $root->look_down("class" => "programList")) {
+      if (my @programmes = $container->find("li")) {
+	foreach my $programme (@programmes) {
+	  my $date = $programme->look_down("class", "programDate");
+	  my $desc = $programme->look_down("class", "programDescription");
+	  if ($date && $desc) {
+	    my $href = $date->find("a");
+	    if ($href) {
+	      $date = $href->as_text();
+	      $desc = $desc->as_text();
+	      # Use "." to match &nbsp; character (it's not included in \s?)
+	      if (my($start, $title) = $date =~ /^(\d{2}:\d{2}).(.+)/) {
+		debug(3, "Programme $channel ($start) $title");
+		debug(4, $desc);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    # Done with the HTML tree
+    $root->delete();
+  }
 
   return;
 }
@@ -57,8 +92,7 @@ my $root = HTML::TreeBuilder->new_from_content($html)
 binmode(STDOUT, ":utf8");
 
 # channel list
-my $container;
-if ($container = $root->look_down("id" => "channelList")) {
+if (my $container = $root->look_down("id" => "channelList")) {
   print "FOUND: ", $container->tag(), "\n";
   if (my @channels = $container->find("li")) {
     print "FIRST: ", scalar(@channels), " channels\n";
@@ -71,29 +105,6 @@ if ($container = $root->look_down("id" => "channelList")) {
         (my($channel_no) = ($href =~ m,channel/list/(\d+)/,))) {
       print "$name ($channel_no)\n";
     }
-      }
-    }
-  }
-}
-
-# programme data
-if ($container = $root->look_down("class" => "programList")) {
-  print "FOUND: ", $container->tag(), "\n";
-  if (my @programmes = $container->find("li")) {
-    print "FIRST: ", scalar(@programmes), " programmes\n";
-    foreach my $programme (@programmes) {
-      my $date = $programme->look_down("class", "programDate");
-      my $desc = $programme->look_down("class", "programDescription");
-      if ($date && $desc) {
-	my $href = $date->find("a");
-	if (defined($href)) {
-	  $date = $href->as_text();
-	  $desc = $desc->as_text();
-	  # Use "." to match &nbsp; character (it's not included in \s?)
-	  if (my($start, $title) = $date =~ /^(\d{2}:\d{2}).(.+)/) {
-	    print "Programme ($start) $title: $desc\n";
-	  }
-	}
       }
     }
   }

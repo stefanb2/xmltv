@@ -8,6 +8,8 @@
 #
 # INSERT FROM HERE ############################################################
 package fi::source::tvnyt;
+use strict;
+use warnings;
 
 use JSON;
 

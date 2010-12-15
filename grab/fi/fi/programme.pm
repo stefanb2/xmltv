@@ -8,6 +8,8 @@
 #
 # INSERT FROM HERE ############################################################
 package fi::programme;
+use strict;
+use warnings;
 use Carp;
 use POSIX qw(strftime);
 
