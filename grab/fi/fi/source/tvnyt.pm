@@ -11,8 +11,21 @@ package fi::source::tvnyt;
 
 use JSON;
 
+# Import from internal modules
+fi::common->import();
+
 # Description
 sub description { 'tvnyt.fi' }
+
+# Grab one day
+sub grab {
+  my($self, $id, $yesterday, $today, $tomorrow) = @_;
+
+  # Get channel number from XMLTV id
+  return unless my($channel) = ($id =~ /^(\d+)\.tvnyt\.fi$/);
+
+  return;
+}
 
 # That's all folks
 1;

@@ -9,8 +9,21 @@
 # INSERT FROM HERE ############################################################
 package fi::source::telkku;
 
+# Import from internal modules
+fi::common->import();
+
 # Description
 sub description { 'telkku.com' }
+
+# Grab one day
+sub grab {
+  my($self, $id, $yesterday, $today, $tomorrow) = @_;
+
+  # Get channel number from XMLTV id
+  return unless my($channel) = ($id =~ /^(\d+)\.telkku\.com$/);
+
+  return;
+}
 
 # That's all folks
 1;

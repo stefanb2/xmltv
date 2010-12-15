@@ -9,8 +9,22 @@
 # INSERT FROM HERE ############################################################
 package fi::source::yle;
 
+# Import from internal modules
+fi::common->import();
+
 # Description
 sub description { 'yle.fi' }
+
+# Grab one day
+sub grab {
+  my($self, $id, $yesterday, $today, $tomorrow) = @_;
+
+  # Get channel number from XMLTV id
+  return unless my($channel) = ($id =~ /^(\S+)\.yle\.fi$/);
+
+  return;
+}
+
 
 # That's all folks
 1;

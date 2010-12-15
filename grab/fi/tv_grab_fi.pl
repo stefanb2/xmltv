@@ -16,6 +16,7 @@ package main;
 # Perl core modules
 use Getopt::Long;
 use Pod::Usage;
+use POSIX qw(strftime);
 
 # CUT CODE START
 ###############################################################################
@@ -95,6 +96,37 @@ if (GetOptions(\%Option,
   } else {
     # Grab mode (default)
     print STDERR "NOT IMPPLEMENTED YET...\n";
+
+    #### HACK CODE ####
+    my $dates;
+    my @ids;
+    my @programmes;
+    {
+      my $now = time();
+      $dates = [
+		strftime("%Y%m%d", localtime($now - 86400)),
+		strftime("%Y%m%d", localtime($now)),
+		strftime("%Y%m%d", localtime($now + 86400)),
+	       ];
+    }
+    @ids = (
+	    "1.telkku.com",
+	   );
+    $Option{days} = 1;
+    #### HACK CODE ####
+
+    for (my $i = 1; $i < $#{ $dates }; $i++) {
+      debug(2, "Fetching day $dates->[$i]");
+      foreach my $id (@ids) {
+	debug(2, "XMLTV channel ID: $id");
+	foreach my $source (@sources) {
+	  if (my $programmes = $source->grab($id,
+					     @{ $dates }[$i - 1..$i + 1])) {
+	    push(@programmes, @{ $programmes });
+	  }
+	}
+      }
+    }
   }
 } else {
   pod2usage(2);
