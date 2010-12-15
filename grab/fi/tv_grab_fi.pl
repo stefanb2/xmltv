@@ -42,12 +42,18 @@ BEGIN {
 # Import from internal modules
 fi::common->import(':main');
 
-# XMLTV modules
+# Basic XMLTV modules
 use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
 use XMLTV::Capabilities qw(baseline manualconfig cache);
 use XMLTV::Description 'Finland (' .
   join(', ', map { $_->description() } @sources ) .
   ')';
+
+# NOTE: We will only reach the rest of the code only when the script is called
+#       without --version, --capabilities or --description
+# Reminder of XMLTV modules
+use XMLTV::Get_nice;
+use XMLTV::Memoize;
 
 ###############################################################################
 #
@@ -59,6 +65,9 @@ my %Option = (
 	      quiet => 0,
 	      debug => 0,
 	     );
+
+# Enable caching. This will remove "--cache [file]" from @ARGV
+XMLTV::Memoize::check_argv('XMLTV::Get_nice::get_nice_aux');
 
 # Process command line options
 if (GetOptions(\%Option,
@@ -118,14 +127,18 @@ tv_grab_fi [--cache E<lt>FILEE<gt>]
 tv_grab_fi  --capabilities
 
 tv_grab_fi  --configure
+           [--cache E<lt>FILEE<gt>]
            [--config-file E<lt>FILEE<gt>]
            [--gui [E<lt>OPTIONE<gt>]]
+           [--quiet]
 
 tv_grab_fi  --description
 
 tv_grab_fi  --help|-h|-?
 
 tv_grab_fi  --list-channels
+           [--cache E<lt>FILEE<gt>]
+           [--quiet]
 
 tv_grab_fi  --version
 
@@ -133,7 +146,7 @@ tv_grab_fi  --version
 
 Grab TV listings for several channels available in Finland. The data comes
 from various sources, e.g. www.telkku.com. The grabber relies on parsing HTML,
-so it might stop working when the web page layout is changed..
+so it might stop working when the web page layout is changed.
 
 You need to run C<tv_grab_fi --configure> first to create the channel
 configuration for your setup. Subsequently runs of C<tv_grab_fi> will grab
@@ -175,6 +188,21 @@ Show the version of this grabber.
 
 =back
 
+=head1 GENERIC OPTIONS
+
+=over 8
+
+=item B<--cache F<FILE>>
+
+File name to cache the fetched HTML data in. This speeds up subsequent runs
+using the same data.
+
+=item B<--quiet>
+
+Suppress any progress messages to the standard output.
+
+=back
+
 =head1 CONFIGURE MODE OPTIONS
 
 =over 8
@@ -212,11 +240,6 @@ Tk-based GUI
 
 =over 8
 
-=item B<--cache F<FILE>>
-
-File name to cache the fetched HTML data in. This speeds up subsequent runs
-using the same data.
-
 =item B<--config-file F<FILE>>
 
 File name to read the configuration from.
@@ -238,10 +261,6 @@ Default is 0, i.e. today.
 =item B<--output F<FILE>>
 
 Write the XML data to F<FILE> instead of the standard output.
-
-=item B<--quiet>
-
-Suppress any progress messages to the standard output.
 
 =back
 
