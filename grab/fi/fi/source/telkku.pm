@@ -11,11 +11,21 @@ package fi::source::telkku;
 use strict;
 use warnings;
 
+use Time::Local qw(timelocal);
+
 # Import from internal modules
 fi::common->import();
 
 # Description
 sub description { 'telkku.com' }
+
+# Take a day (day/month/year) and the program start time (hour/minute)
+# and convert it to seconds since Epoch in the current time zone
+sub _program_time_to_epoch($$) {
+  my($date, $program) = @_;
+  return(timelocal(0, $program->{minute}, $program->{hour},
+		   $date->day(), $date->month() - 1, $date->year()));
+}
 
 # Grab one day
 sub grab {
@@ -42,11 +52,12 @@ sub grab {
     #   ...
     #  </ul>
     #
+    my @programmes;
     if (my $container = $root->look_down("class" => "programList")) {
-      if (my @programmes = $container->find("li")) {
-	foreach my $programme (@programmes) {
-	  my $date = $programme->look_down("class", "programDate");
-	  my $desc = $programme->look_down("class", "programDescription");
+      if (my @list = $container->find("li")) {
+	foreach my $list_entry (@list) {
+	  my $date = $list_entry->look_down("class", "programDate");
+	  my $desc = $list_entry->look_down("class", "programDescription");
 	  if ($date && $desc) {
 	    my $href = $date->find("a");
 	    if ($href) {
@@ -56,11 +67,21 @@ sub grab {
 	      $desc = $desc->as_text();
 
 	      # Use "." to match &nbsp; character (it's not included in \s?)
-	      if (my($start, $title) = $date =~ /^(\d{2}:\d{2}).(.+)/) {
-		debug(3, "Programme $channel ($start) $title");
+	      if (my($hour, $minute, , $title) =
+		  $date =~ /^(\d{2}):(\d{2}).(.+)/) {
+		debug(3, "List entry $channel ($hour:$minute) $title");
 		debug(4, $desc);
 
-		# TBA...
+		# Only record entry if title isn't empty
+		push(@programmes, {
+				   description => $desc,
+				   hour        => $hour,
+				   minute      => $minute,
+				   # minutes since midnight
+				   start       => $hour * 60 + $minute,
+				   title       => $title,
+				  })
+		  if length($title) > 0;
 	      }
 	    }
 	  }
@@ -70,6 +91,62 @@ sub grab {
 
     # Done with the HTML tree
     $root->delete();
+
+    # No data found -> return empty list
+    return unless @programmes;
+
+    # Each page on telkku.com contains the program information
+    # for one channel for one whole day.
+    #
+    # Example (compiled from several pages for illustration):
+    #
+    #  /- start time             (day)
+    #  |     /- program title
+    #  |     |
+    # [23:45 Uutisikkuna         (yesterday)]
+    #  00:10 Uutisikkuna         (today    )
+    #  ...
+    #  23:31 Uusi päivä          (today    )
+    #  00:00 Kova laki           (tomorrow )
+    # [00:40 Piilosana           (tomorrow )]
+    # [01:00 Tellus-tietovisa    (tomorrow )]
+    #
+    # The lines in [] don't appear on every page.
+    #
+    # Check for day crossing between first and second entry
+    my @dates = ($today, $tomorrow);
+    unshift(@dates, $yesterday)
+      if ((@programmes > 1) &&
+	  ($programmes[0]->{start} > $programmes[1]->{start}));
+
+
+    my @objects;
+    my $date          = shift(@dates);
+    my $current       = shift(@programmes);
+    my $current_start = $current->{start};
+    my $current_epoch = _program_time_to_epoch($date, $current);
+    foreach my $next (@programmes) {
+
+      # Start of next program might be on the next day
+      my $next_start = $next->{start};
+      $date          = shift(@dates)
+	if $current_start > $next_start;
+      my $next_epoch = _program_time_to_epoch($date, $next);
+
+      # Create program object
+      debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
+      my $object = fi::programme->new($id, $current->{title},
+				      $current_epoch, $next_epoch);
+      $object->description($current->{description});
+      push(@objects, $object);
+
+      # Move to next program
+      $current       = $next;
+      $current_start = $next_start;
+      $current_epoch = $next_epoch;
+    }
+
+    return(\@objects);
   }
 
   return;

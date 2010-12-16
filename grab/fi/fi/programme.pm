@@ -16,11 +16,18 @@ use POSIX qw(strftime);
 # Import from internal modules
 fi::common->import();
 
+sub _trim {
+  return unless defined($_[0]);
+  $_[0] =~ s/^\s+//;
+  $_[0] =~ s/\s+$//;
+}
+
 # Constructor
 sub new {
   my($class, $channel, $title, $start, $stop) = @_;
+  _trim($title);
   croak "${class}::new called without valid title, start or stop"
-    unless defined($channel) && defined($title) &&
+    unless defined($channel) && defined($title) && (length($title) > 0) &&
            defined($start) && defined($stop);
 
   my $self = {
@@ -36,7 +43,9 @@ sub new {
 # instance methods
 sub description {
   my($self, $description) = @_;
-  $self->{description} = $description;
+  _trim($description);
+  $self->{description} = $description
+    if defined($description) && (length($description) > 0);
 }
 
 # Convert seconds since Epoch to XMLTV time stamp
