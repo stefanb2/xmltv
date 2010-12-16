@@ -98,29 +98,56 @@ if (GetOptions(\%Option,
 
     #### HACK CODE ####
     $Option{offset} = 1;
-    $Option{days}   = 1;
-    my @ids = (
-	       "1.telkku.com",
-	      );
+    $Option{days}   = 3;
+    my %channels = (
+		    "1.telkku.com" => "YLE1",
+		    "2.telkku.com" => "YLE2",
+		    "3.telkku.com" => "MTV3",
+		   );
     my @programmes;
+    my $writer = XMLTV::Writer->new(
+				    encoding => 'UTF-8',
+				    OUTPUT   => \*STDOUT,
+				   );
+    $writer->start({
+		    "generator-info-name" => "XMLTV",
+		    "generator-info-url"  => "http://xmltv.org/",
+		    "source-info-url"     => "multiple", # TBA
+		    "source-data-url"     => "multiple", # TBA
+		   });
+    binmode(STDOUT, ":utf8");
     #### HACK CODE ####
 
     # Generate list of days
     my $dates = fi::day->generate($Option{offset}, $Option{days});
 
-    # For each day and each channel
-    for (my $i = 1; $i < $#{ $dates }; $i++) {
-      debug(1, "Fetching day $dates->[$i]");
-      foreach my $id (@ids) {
-	debug(1, "XMLTV channel ID: $id");
+    # For each channel and each day
+    my %seen;
+    foreach my $id (sort keys %channels) {
+      debug(1, "XMLTV channel ID: $id");
+      for (my $i = 1; $i < $#{ $dates }; $i++) {
+	debug(1, "Fetching day $dates->[$i]");
 	foreach my $source (@sources) {
 	  if (my $programmes = $source->grab($id,
 					     @{ $dates }[$i - 1..$i + 1])) {
+	    # Add channel ID & name (once)
+	    $writer->write_channel({
+				    id             => $id,
+				    'display-name' => [[$channels{$id}, "fi"]],
+				   })
+	      unless $seen{$id}++;
+
+	    # Add programmes to list
 	    push(@programmes, @{ $programmes });
 	  }
 	}
       }
     }
+
+    # Dump programs
+    $_->dump($writer) foreach (@programmes);
+    $writer->end();
+
   }
 } else {
   pod2usage(2);

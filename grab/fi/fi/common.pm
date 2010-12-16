@@ -43,7 +43,7 @@ use XMLTV::Get_nice;
   sub setDebug($) {
     if (($debug) = @_) {
       # Debug messages may contain Unicode
-      binmode(STDERR, "utf8");
+      binmode(STDERR, ":utf8");
       debug(1, "Debug level set to $debug.");
     }
   }

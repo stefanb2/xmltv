@@ -75,14 +75,14 @@ sub dump {
 	       channel => $self->{channel},
 	       start   => _epoch_to_xmltv_time($self->{start}),
 	       stop    => _epoch_to_xmltv_time($self->{stop}),
-	       title   => $self->{title},
+	       title   => [[$self->{title}, "fi"]],
 	      );
-  debug(3, "XMLTV programme '$xmltv{start}':'$xmltv{stop}' '$xmltv{title}'");
+  debug(3, "XMLTV programme '$xmltv{start}':'$xmltv{stop}' '$self->{title}'");
 
   # XMLTV programme descriptor (optional parts)
   if (exists $self->{description}) {
-    $xmltv{desc} = $self->{description};
-    debug(4, "XMLTV programme '$xmltv{description}'");
+    $xmltv{desc} = [[$self->{description}, "fi"]];
+    debug(4, $self->{description});
   }
 
   $writer->write_programme(\%xmltv);
