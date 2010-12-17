@@ -25,7 +25,16 @@ sub channels {
   if ($root) {
     my %channels;
 
-    # Channel list
+    #
+    # Channel list can be found from this dropdown:
+    #
+    # <select name="week" id="viikko_dropdown" class="dropdown">
+    #   <option value="">Valitse kanava</option>
+    #   <option value="tv1">YLE TV1</option>
+    #   ...
+    #   <option value="tvf">TV Finland (CET)</option>
+    # </select>
+    #
     if (my $container = $root->look_down("id" => "viikko_dropdown")) {
       if (my @options = $container->find("option")) {
 	debug(2, "Source yle.fi found " . scalar(@options) . " channels");

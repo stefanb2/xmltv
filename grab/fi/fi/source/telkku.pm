@@ -27,7 +27,20 @@ sub channels {
   if ($root) {
     my %channels;
 
-    # Channel list
+    #
+    # Channel list can be found from the left sidebar
+    #
+    # <div id="channelList">
+    #   ...
+    #   <ul>
+    #     <li><a href="http://www.telkku.com/channel/list/8/20101218">4 Sport</a></li>
+    #     <li><a href="http://www.telkku.com/channel/list/24/20101218">4 Sport Pro</a></li>
+    #     ...
+    #	  <li><a href="http://www.telkku.com/channel/list/87/20101218">Viron ETV</a></li>
+    #     <li><a href="http://www.telkku.com/channel/list/10/20101218">YLE Teema</a></li>
+    #   </ul>
+    # </div>
+    #
     if (my $container = $root->look_down("id" => "channelList")) {
       if (my @list = $container->find("li")) {
 	debug(2, "Source telkku.com found " . scalar(@list) . " channels");
