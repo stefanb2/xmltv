@@ -19,9 +19,29 @@ fi::common->import();
 # Description
 sub description { 'tvnyt.fi' }
 
+# Copied from Javascript code. No idea why we should do this...
+sub _timestamp() {
+  return("timestamp=" . int(rand(10000)));
+}
+
 # Grab channel list
 sub channels {
-  # Do nothing for now...
+
+  # Fetch JavaScript code as raw file
+  my $content = fetchRaw("http://www.tvnyt.fi/ohjelmaopas/wp_channels.js?" . _timestamp());
+  if (length($content)) {
+    my $count = 0;
+    # 1) pattern match JS arrays (example: ["1","TV1","tv1.gif"] -> 1, "TV1")
+    # 2) even entries in the list are converted to XMLTV ID
+    # 3) fill hash from list (even -> key [id], odd -> value [name])
+    my %channels = (
+		    map { ($count++ % 2) == 0 ? "$_.tvnyt.fi" : $_ }
+		      $content =~ /\["(\d+)","([^\"]+)","[^\"]+"\]/g
+		   );
+    debug(2, "Source tvnyt.fi parsed " . scalar(keys %channels) . " channels");
+    return(\%channels);
+  }
+
   return;
 }
 
