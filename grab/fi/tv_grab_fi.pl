@@ -62,8 +62,10 @@ use XMLTV::Memoize;
 ###############################################################################
 # Command line option default values
 my %Option = (
-	      quiet => 0,
-	      debug => 0,
+	      days   => 14,
+	      quiet  =>  0,
+	      debug  =>  0,
+	      offset =>  0,
 	     );
 
 # Enable caching. This will remove "--cache [file]" from @ARGV
@@ -73,9 +75,11 @@ XMLTV::Memoize::check_argv('XMLTV::Get_nice::get_nice_aux');
 if (GetOptions(\%Option,
 	       "configure",
 	       "config-file=s",
+	       "days=i",
 	       "debug|d+",
 	       "help|h|?",
 	       "list-channels",
+	       "offset=i",
 	       "quiet")) {
 
   pod2usage(-exitstatus => 0,
@@ -96,9 +100,12 @@ if (GetOptions(\%Option,
   } else {
     # Grab mode (default)
 
+    die "$0: --offset must be a non-negative integer"
+      unless $Option{offset} >= 0;
+    die "$0: --days must be an integer larger than 0"
+      unless $Option{days} > 0;
+
     #### HACK CODE ####
-    $Option{offset} = 1;
-    $Option{days}   = 3;
     my @programmes;
     my $writer = XMLTV::Writer->new(
 				    encoding => 'UTF-8',
