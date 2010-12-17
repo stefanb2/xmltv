@@ -30,7 +30,7 @@ sub channels {
     # Channel list
     if (my $container = $root->look_down("id" => "channelList")) {
       if (my @list = $container->find("li")) {
-	debug(2, "Source www.telkku.com found " . scalar(@list) . " channels");
+	debug(2, "Source telkku.com found " . scalar(@list) . " channels");
 	foreach my $list_entry (@list) {
 	  if (my $link = $list_entry->find("a")) {
 	    my $href = $link->attr("href");
@@ -39,7 +39,7 @@ sub channels {
 	    if (defined($href) && length($name) &&
 		(my($channel_no) = ($href =~ m,channel/list/(\d+)/,))) {
 	      debug(3, "channel '$name' ($channel_no)");
-	      $channels{$channel_no . ".telkku.com"} = $name;
+	      $channels{"${channel_no}.telkku.com"} = $name;
 	    }
 	  }
 	}
@@ -49,7 +49,7 @@ sub channels {
     # Done with the HTML tree
     $root->delete();
 
-    debug(2, "Source www.telkku.com parsed " . scalar(keys %channels) . " channels");
+    debug(2, "Source telkku.com parsed " . scalar(keys %channels) . " channels");
     return(\%channels);
   }
 

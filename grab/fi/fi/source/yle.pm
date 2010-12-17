@@ -19,7 +19,35 @@ sub description { 'yle.fi' }
 
 # Grab channel list
 sub channels {
-  # Do nothing for now...
+
+  # Fetch & parse HTML
+  my $root = fetchTree("http://ohjelmaopas.yle.fi/");
+  if ($root) {
+    my %channels;
+
+    # Channel list
+    if (my $container = $root->look_down("id" => "viikko_dropdown")) {
+      if (my @options = $container->find("option")) {
+	debug(2, "Source yle.fi found " . scalar(@options) . " channels");
+	foreach my $option (@options) {
+	  my $id   = $option->attr("value");
+	  my $name = $option->as_text();
+
+	  if (defined($id) && length($id) && length($name)) {
+	    debug(3, "channel '$name' ($id)");
+	    $channels{"${id}.yle.fi"} = $name;
+	  }
+	}
+      }
+    }
+
+    # Done with the HTML tree
+    $root->delete();
+
+    debug(2, "Source yle.fi parsed " . scalar(keys %channels) . " channels");
+    return(\%channels);
+  }
+
   return;
 }
 
