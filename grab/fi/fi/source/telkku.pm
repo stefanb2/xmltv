@@ -27,6 +27,12 @@ sub _program_time_to_epoch($$) {
 		   $date->day(), $date->month() - 1, $date->year()));
 }
 
+# Grab channel list
+sub channels {
+  # Do nothing for now...
+  return;
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;

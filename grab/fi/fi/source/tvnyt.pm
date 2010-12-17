@@ -19,6 +19,12 @@ fi::common->import();
 # Description
 sub description { 'tvnyt.fi' }
 
+# Grab channel list
+sub channels {
+  # Do nothing for now...
+  return;
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;

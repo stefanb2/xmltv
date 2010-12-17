@@ -61,6 +61,7 @@ use XMLTV::Memoize;
 #
 ###############################################################################
 # Forward declarations
+sub doListChannels();
 sub doGrab();
 
 # Command line option default values
@@ -99,7 +100,7 @@ if (GetOptions(\%Option,
 
   } elsif ($Option{'list-channels'}) {
     # List channels mode
-    print STDERR "NOT IMPPLEMENTED YET...\n";
+    doListChannels();
 
   } else {
     # Grab mode (default)
@@ -114,6 +115,76 @@ exit 0;
 
 ###############################################################################
 #
+# Utility functions for the different modes
+#
+###############################################################################
+{
+  my $ofh;
+
+  sub _createXMLTVWriter() {
+
+    # Output file handling
+    $ofh = \*STDOUT;
+    if (defined $Option{output}) {
+      open($ofh, ">", $Option{output})
+	or die "$0: cannot open file '$Option{output}' for writing: $!";
+    }
+
+    # Create XMLTV writer for UTF-8 encoded text
+    binmode($ofh, ":utf8");
+    my $writer = XMLTV::Writer->new(
+				    encoding => 'UTF-8',
+				    OUTPUT   => \*STDOUT,
+				   );
+
+    #### HACK CODE ####
+    $writer->start({
+		    "generator-info-name" => "XMLTV",
+		    "generator-info-url"  => "http://xmltv.org/",
+		    "source-info-url"     => "multiple", # TBA
+		    "source-data-url"     => "multiple", # TBA
+		   });
+    #### HACK CODE ####
+
+    return($writer);
+  }
+
+  sub _closeXMLTVWriter($) {
+    my($writer) = @_;
+    $writer->end();
+
+    # close output file
+    if ($Option{output}) {
+      close($ofh) or die "$0: write error on file '$Option{output}': $!";
+    }
+  }
+}
+
+###############################################################################
+#
+# List Channels Mode
+#
+###############################################################################
+sub doListChannels() {
+  # Create XMLTV writer
+  my $writer = _createXMLTVWriter();
+
+  # Get channels from all sources
+  foreach my $source (@sources) {
+    debug(1, "requesting channel list from source '" . $source->description ."'");
+    if (my $list = $source->channels()) {
+      foreach (my($id, $name) = each %{ $list }) {
+	$writer->write_channel($id, $name);
+      }
+    }
+  }
+
+  # Done writing
+  _closeXMLTVWriter($writer);
+}
+
+###############################################################################
+#
 # Grab Mode
 #
 ###############################################################################
@@ -123,29 +194,6 @@ sub doGrab() {
     unless $Option{offset} >= 0;
   die "$0: --days must be an integer larger than 0"
     unless $Option{days} > 0;
-
-  # Output file
-  my $ofh = \*STDOUT;
-  if (defined $Option{output}) {
-    open($ofh, ">", $Option{output})
-      or die "$0: cannot open file '$Option{output}' for writing: $!";
-  }
-
-  # Create XMLTV writer for UTF-8 encoded text
-  binmode($ofh, ":utf8");
-  my $writer = XMLTV::Writer->new(
-				  encoding => 'UTF-8',
-				  OUTPUT   => \*STDOUT,
-				 );
-
-  #### HACK CODE ####
-  $writer->start({
-		  "generator-info-name" => "XMLTV",
-		  "generator-info-url"  => "http://xmltv.org/",
-		  "source-info-url"     => "multiple", # TBA
-		  "source-data-url"     => "multiple", # TBA
-		 });
-  #### HACK CODE ####
 
   # Get configuation
   my %channels;
@@ -188,6 +236,9 @@ sub doGrab() {
   # Generate list of days
   my $dates = fi::day->generate($Option{offset}, $Option{days});
 
+  # Create XMLTV writer
+  my $writer = _createXMLTVWriter();
+
   # For each channel and each day
   my %seen;
   my @programmes;
@@ -214,12 +265,9 @@ sub doGrab() {
 
   # Dump programs
   $_->dump($writer) foreach (@programmes);
-  $writer->end();
 
-  # close output file
-  if ($Option{output}) {
-    close($ofh) or die "$0: write error on file '$Option{output}': $!";
-  }
+  # Done writing
+  _closeXMLTVWriter($writer);
 }
 
 ###############################################################################
