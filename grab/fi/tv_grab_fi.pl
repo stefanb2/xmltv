@@ -72,6 +72,7 @@ XMLTV::Memoize::check_argv('XMLTV::Get_nice::get_nice_aux');
 # Process command line options
 if (GetOptions(\%Option,
 	       "configure",
+	       "config-file=s",
 	       "debug|d+",
 	       "help|h|?",
 	       "list-channels",
@@ -94,16 +95,10 @@ if (GetOptions(\%Option,
 
   } else {
     # Grab mode (default)
-    print STDERR "NOT IMPPLEMENTED YET...\n";
 
     #### HACK CODE ####
     $Option{offset} = 1;
     $Option{days}   = 3;
-    my %channels = (
-		    "1.telkku.com" => "YLE1",
-		    "2.telkku.com" => "YLE2",
-		    "3.telkku.com" => "MTV3",
-		   );
     my @programmes;
     my $writer = XMLTV::Writer->new(
 				    encoding => 'UTF-8',
@@ -117,6 +112,43 @@ if (GetOptions(\%Option,
 		   });
     binmode(STDOUT, ":utf8");
     #### HACK CODE ####
+
+    # Get configuation
+    my %channels;
+    {
+      # Get configuration file name
+      require XMLTV::Config_file;
+      my $file = XMLTV::Config_file::filename($Option{'config-file'},
+					      "tv_grab_fi",
+					      $Option{quiet});
+
+      # Open configuration file. Assume UTF-8 encoding
+      open(my $fh, "<:utf8", $file)
+	or die "$0: can't open configuration file '$file': $!";
+
+      # Process configuration information
+      while (<$fh>) {
+
+	# Comment removal, white space trimming and compressing
+	s/\#.*//;
+	s/^\s+//;
+	s/\s+$//;
+	next unless length; # skip empty lines
+	s/\s+/ /;
+
+	# Channel definition
+	if (my($id, $name) = /^channel (\S+) (.+)/) {
+	  debug(1, "duplicate channel definion in line $.:$id ($name)")
+	    if exists $channels{$id};
+	  $channels{$id} = $name;
+
+	# For now ignore the rest...
+	} else {
+	}
+      }
+
+      close($fh);
+    }
 
     # Generate list of days
     my $dates = fi::day->generate($Option{offset}, $Option{days});
