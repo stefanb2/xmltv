@@ -80,6 +80,7 @@ if (GetOptions(\%Option,
 	       "help|h|?",
 	       "list-channels",
 	       "offset=i",
+	       "output=s",
 	       "quiet")) {
 
   pod2usage(-exitstatus => 0,
@@ -105,19 +106,25 @@ if (GetOptions(\%Option,
     die "$0: --days must be an integer larger than 0"
       unless $Option{days} > 0;
 
-    #### HACK CODE ####
-    my @programmes;
+    my $ofh = \*STDOUT;
+    if (defined $Option{output}) {
+      open($ofh, ">", $Option{output})
+	or die "$0: cannot open file '$Option{output}' for writing: $!";
+    }
+
+    # Create XMLTV writer for UTF-8 encoded text
+    binmode($ofh, ":utf8");
     my $writer = XMLTV::Writer->new(
 				    encoding => 'UTF-8',
 				    OUTPUT   => \*STDOUT,
 				   );
+    #### HACK CODE ####
     $writer->start({
 		    "generator-info-name" => "XMLTV",
 		    "generator-info-url"  => "http://xmltv.org/",
 		    "source-info-url"     => "multiple", # TBA
 		    "source-data-url"     => "multiple", # TBA
 		   });
-    binmode(STDOUT, ":utf8");
     #### HACK CODE ####
 
     # Get configuation
@@ -162,6 +169,7 @@ if (GetOptions(\%Option,
 
     # For each channel and each day
     my %seen;
+    my @programmes;
     foreach my $id (sort keys %channels) {
       debug(1, "XMLTV channel ID: $id");
       for (my $i = 1; $i < $#{ $dates }; $i++) {
