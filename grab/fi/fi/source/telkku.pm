@@ -19,18 +19,49 @@ fi::common->import();
 # Description
 sub description { 'telkku.com' }
 
+# Grab channel list
+sub channels {
+
+  # Fetch & parse HTML
+  my $root = fetchTree("http://www.telkku.com/channel");
+  if ($root) {
+    my %channels;
+
+    # Channel list
+    if (my $container = $root->look_down("id" => "channelList")) {
+      if (my @list = $container->find("li")) {
+	debug(2, "Source www.telkku.com found " . scalar(@list) . " channels");
+	foreach my $list_entry (@list) {
+	  if (my $link = $list_entry->find("a")) {
+	    my $href = $link->attr("href");
+	    my $name = $link->as_text();
+
+	    if (defined($href) && length($name) &&
+		(my($channel_no) = ($href =~ m,channel/list/(\d+)/,))) {
+	      debug(3, "channel '$name' ($channel_no)");
+	      $channels{$channel_no . ".telkku.com"} = $name;
+	    }
+	  }
+	}
+      }
+    }
+
+    # Done with the HTML tree
+    $root->delete();
+
+    debug(2, "Source www.telkku.com parsed " . scalar(keys %channels) . " channels");
+    return(\%channels);
+  }
+
+  return;
+}
+
 # Take a day (day/month/year) and the program start time (hour/minute)
 # and convert it to seconds since Epoch in the current time zone
 sub _program_time_to_epoch($$) {
   my($date, $program) = @_;
   return(timelocal(0, $program->{minute}, $program->{hour},
 		   $date->day(), $date->month() - 1, $date->year()));
-}
-
-# Grab channel list
-sub channels {
-  # Do nothing for now...
-  return;
 }
 
 # Grab one day
@@ -160,56 +191,3 @@ sub grab {
 
 # That's all folks
 1;
-
-__END__
-
-example URL: http://www.telkku.com/channel/list/1/20101218
-
-telkku HTML::TreeBuilder/Element based parser
-
-#!/usr/bin/perl -w
-use 5.008;
-use strict;
-use warnings;
-
-use HTML::TreeBuilder;
-
-# Parse HTML
-# Parse HTML
-die "usage: $0 <html file>\n" unless @ARGV;
-my $html;
-{
-  local $/;
-  open(my $fh, "<:utf8", $ARGV[0]) or die "$0: can't open file '$ARGV[0]': $!\n";
-  $html = <$fh>;
-  close($fh);
-}
-my $root = HTML::TreeBuilder->new_from_content($html)
-  or die "$0: HTML parsing failed!\n";
-
-binmode(STDOUT, ":utf8");
-
-# channel list
-if (my $container = $root->look_down("id" => "channelList")) {
-  print "FOUND: ", $container->tag(), "\n";
-  if (my @channels = $container->find("li")) {
-    print "FIRST: ", scalar(@channels), " channels\n";
-    foreach my $channel (@channels) {
-      if (my $a = $channel->find("a")) {
-    my $href = $a->attr("href");
-    my $name = $a->as_text();
-
-    if (defined($href) && ($name ne "") &&
-        (my($channel_no) = ($href =~ m,channel/list/(\d+)/,))) {
-      print "$name ($channel_no)\n";
-    }
-      }
-    }
-  }
-}
-
-# Done with the HTML tree
-$root->delete();
-
-# That's all folks...
-exit 0;
