@@ -60,6 +60,9 @@ use XMLTV::Memoize;
 # Main program
 #
 ###############################################################################
+# Forward declarations
+sub doGrab();
+
 # Command line option default values
 my %Option = (
 	      days   => 14,
@@ -100,101 +103,7 @@ if (GetOptions(\%Option,
 
   } else {
     # Grab mode (default)
-
-    die "$0: --offset must be a non-negative integer"
-      unless $Option{offset} >= 0;
-    die "$0: --days must be an integer larger than 0"
-      unless $Option{days} > 0;
-
-    my $ofh = \*STDOUT;
-    if (defined $Option{output}) {
-      open($ofh, ">", $Option{output})
-	or die "$0: cannot open file '$Option{output}' for writing: $!";
-    }
-
-    # Create XMLTV writer for UTF-8 encoded text
-    binmode($ofh, ":utf8");
-    my $writer = XMLTV::Writer->new(
-				    encoding => 'UTF-8',
-				    OUTPUT   => \*STDOUT,
-				   );
-    #### HACK CODE ####
-    $writer->start({
-		    "generator-info-name" => "XMLTV",
-		    "generator-info-url"  => "http://xmltv.org/",
-		    "source-info-url"     => "multiple", # TBA
-		    "source-data-url"     => "multiple", # TBA
-		   });
-    #### HACK CODE ####
-
-    # Get configuation
-    my %channels;
-    {
-      # Get configuration file name
-      require XMLTV::Config_file;
-      my $file = XMLTV::Config_file::filename($Option{'config-file'},
-					      "tv_grab_fi",
-					      $Option{quiet});
-
-      # Open configuration file. Assume UTF-8 encoding
-      open(my $fh, "<:utf8", $file)
-	or die "$0: can't open configuration file '$file': $!";
-
-      # Process configuration information
-      while (<$fh>) {
-
-	# Comment removal, white space trimming and compressing
-	s/\#.*//;
-	s/^\s+//;
-	s/\s+$//;
-	next unless length; # skip empty lines
-	s/\s+/ /;
-
-	# Channel definition
-	if (my($id, $name) = /^channel (\S+) (.+)/) {
-	  debug(1, "duplicate channel definion in line $.:$id ($name)")
-	    if exists $channels{$id};
-	  $channels{$id} = $name;
-
-	# For now ignore the rest...
-	} else {
-	}
-      }
-
-      close($fh);
-    }
-
-    # Generate list of days
-    my $dates = fi::day->generate($Option{offset}, $Option{days});
-
-    # For each channel and each day
-    my %seen;
-    my @programmes;
-    foreach my $id (sort keys %channels) {
-      debug(1, "XMLTV channel ID: $id");
-      for (my $i = 1; $i < $#{ $dates }; $i++) {
-	debug(1, "Fetching day $dates->[$i]");
-	foreach my $source (@sources) {
-	  if (my $programmes = $source->grab($id,
-					     @{ $dates }[$i - 1..$i + 1])) {
-	    # Add channel ID & name (once)
-	    $writer->write_channel({
-				    id             => $id,
-				    'display-name' => [[$channels{$id}, "fi"]],
-				   })
-	      unless $seen{$id}++;
-
-	    # Add programmes to list
-	    push(@programmes, @{ $programmes });
-	  }
-	}
-      }
-    }
-
-    # Dump programs
-    $_->dump($writer) foreach (@programmes);
-    $writer->end();
-
+    doGrab();
   }
 } else {
   pod2usage(2);
@@ -202,6 +111,116 @@ if (GetOptions(\%Option,
 
 # That's all folks
 exit 0;
+
+###############################################################################
+#
+# Grab Mode
+#
+###############################################################################
+sub doGrab() {
+  # Sanity check
+  die "$0: --offset must be a non-negative integer"
+    unless $Option{offset} >= 0;
+  die "$0: --days must be an integer larger than 0"
+    unless $Option{days} > 0;
+
+  # Output file
+  my $ofh = \*STDOUT;
+  if (defined $Option{output}) {
+    open($ofh, ">", $Option{output})
+      or die "$0: cannot open file '$Option{output}' for writing: $!";
+  }
+
+  # Create XMLTV writer for UTF-8 encoded text
+  binmode($ofh, ":utf8");
+  my $writer = XMLTV::Writer->new(
+				  encoding => 'UTF-8',
+				  OUTPUT   => \*STDOUT,
+				 );
+
+  #### HACK CODE ####
+  $writer->start({
+		  "generator-info-name" => "XMLTV",
+		  "generator-info-url"  => "http://xmltv.org/",
+		  "source-info-url"     => "multiple", # TBA
+		  "source-data-url"     => "multiple", # TBA
+		 });
+  #### HACK CODE ####
+
+  # Get configuation
+  my %channels;
+  {
+    # Get configuration file name
+    require XMLTV::Config_file;
+    my $file = XMLTV::Config_file::filename($Option{'config-file'},
+					    "tv_grab_fi",
+					    $Option{quiet});
+
+    # Open configuration file. Assume UTF-8 encoding
+    open(my $fh, "<:utf8", $file)
+      or die "$0: can't open configuration file '$file': $!";
+
+    # Process configuration information
+    while (<$fh>) {
+
+      # Comment removal, white space trimming and compressing
+      s/\#.*//;
+      s/^\s+//;
+      s/\s+$//;
+      next unless length;	# skip empty lines
+      s/\s+/ /;
+
+      # Channel definition
+      if (my($id, $name) = /^channel (\S+) (.+)/) {
+	debug(1, "duplicate channel definion in line $.:$id ($name)")
+	  if exists $channels{$id};
+	$channels{$id} = $name;
+
+	# For now ignore the rest...
+      } else {
+	# TBA...
+      }
+    }
+
+    close($fh);
+  }
+
+  # Generate list of days
+  my $dates = fi::day->generate($Option{offset}, $Option{days});
+
+  # For each channel and each day
+  my %seen;
+  my @programmes;
+  foreach my $id (sort keys %channels) {
+    debug(1, "XMLTV channel ID: $id");
+    for (my $i = 1; $i < $#{ $dates }; $i++) {
+      debug(1, "Fetching day $dates->[$i]");
+      foreach my $source (@sources) {
+	if (my $programmes = $source->grab($id,
+					   @{ $dates }[$i - 1..$i + 1])) {
+	  # Add channel ID & name (once)
+	  $writer->write_channel({
+				  id             => $id,
+				  'display-name' => [[$channels{$id}, "fi"]],
+				 })
+	    unless $seen{$id}++;
+
+	  # Add programmes to list
+	  push(@programmes, @{ $programmes });
+	}
+      }
+    }
+  }
+
+  # Dump programs
+  $_->dump($writer) foreach (@programmes);
+  $writer->end();
+
+  # close output file
+  if ($Option{output}) {
+    close($ofh) or die "$0: write error on file '$Option{output}': $!";
+  }
+}
 
 ###############################################################################
 #
