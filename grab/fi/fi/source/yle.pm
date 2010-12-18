@@ -124,6 +124,9 @@ sub grab {
 	    debug(3, "List entry $channel ($start_hour:$start_minute -> $stop_hour:$stop_minute) $title");
 	    debug(4, $desc);
 
+	    # Stop time can be 24:00
+	    $stop_hour = 0 if $stop_hour == 24;
+
 	    # Offset in minutes from midnight
 	    my $start_offset = $start_hour * 60 + $start_minute;
 	    my $stop_offset  = $stop_hour  * 60 + $stop_minute;
