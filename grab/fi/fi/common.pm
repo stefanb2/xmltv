@@ -12,7 +12,8 @@ use strict;
 use warnings;
 use base qw(Exporter);
 
-our @EXPORT      = qw(message debug fetchRaw fetchTree timeToEpoch);
+our @EXPORT      = qw(message debug fetchRaw fetchTree
+		      timeToEpoch fullTimeToEpoch);
 our @EXPORT_OK   = qw(setQuiet setDebug);
 our %EXPORT_TAGS = (
 		    main => [qw(message debug setQuiet setDebug)],
@@ -77,6 +78,12 @@ sub timeToEpoch($$$) {
   my($date, $hour, $minute) = @_;
   return(timelocal(0, $minute, $hour,
 		   $date->day(), $date->month() - 1, $date->year()));
+}
+
+# Same thing but without fi::day object
+sub fullTimeToEpoch($$$$$) {
+  my($year, $month, $day, $hour, $minute) = @_;
+  return(timelocal(0, $minute, $hour, $day, $month - 1, $year));
 }
 
 # That's all folks

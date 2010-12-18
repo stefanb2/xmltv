@@ -11,6 +11,8 @@ package fi::source::tvnyt;
 use strict;
 use warnings;
 
+use Carp;
+use HTML::Entities qw(decode_entities);
 use JSON;
 
 # Import from internal modules
@@ -45,6 +47,18 @@ sub channels {
   return;
 }
 
+# Parse time stamp and convert to Epoch using local time zone
+#
+# Example time stamp: 20101218040000
+#
+sub _toEpoch($) {
+  my($string) = @_;
+  return unless defined($string);
+  return unless my($year, $month, $day, $hour, $minute) =
+    ($string =~ /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})\d{2}$/);
+  return(fullTimeToEpoch($year, $month, $day, $hour, $minute));
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -52,63 +66,76 @@ sub grab {
   # Get channel number from XMLTV id
   return unless my($channel) = ($id =~ /^(\d+)\.tvnyt\.fi$/);
 
+  # Fetch JavaScript code as raw file
+  my $content = fetchRaw("http://www.tvnyt.fi/ohjelmaopas/getChannelPrograms.aspx?channel=$channel&start=${today}0000&" . _timestamp());
+  if (length($content)) {
+    # Accept "x:.." instead of the correct "'x':..."
+    my $parser = JSON->new()->allow_barekey();
+    my $data   = eval {
+      $parser->decode($content)
+    };
+    croak "JSON parse error: $@" if $@;
+    undef $parser;
+
+    #
+    # Program information is encoded in JSON:
+    #
+    # {
+    #  1: [
+    #      {
+    #       id:       "17111541",
+    #       desc:     "&#x20;",
+    #       title:    "Uutisikkuna",
+    #       category: "0",
+    #       start:    "20101218040000",
+    #       stop:     "20101218080000"
+    #      },
+    #      ...
+    #     ]
+    # }
+    #
+    # Category types:
+    #
+    #   0 - unknown
+    #   1 - dokumentit (documentary)
+    #   2 - draama     (drama)
+    #   3 - lapset     (children)
+    #   4 - uutiset    (news)
+    #   5 - urheilu    (sports)
+    #   6 - vapaa aika (recreational)
+    #
+    # Verify top-level of data structure
+    if ((ref($data) eq "HASH") &&
+	(exists $data->{1})    &&
+	(ref($data->{1}) eq "ARRAY")) {
+
+      my @objects;
+      foreach my $array_entry (@{ $data->{1} }) {
+	my $start = $array_entry->{start};
+	my $stop  = $array_entry->{stop};
+	my $title = decode_entities($array_entry->{title});
+	my $desc  = decode_entities($array_entry->{desc});
+
+	# Sanity check
+	if (($start = _toEpoch($start)) &&
+	    ($stop  = _toEpoch($stop))  &&
+	    length($title)) {
+	    debug(3, "List entry $channel ($start -> $stop) $title");
+	    debug(4, $desc);
+
+	    # Create program object
+	    my $object = fi::programme->new($id, $title, $start, $stop);
+	    $object->description($desc);
+	    push(@objects, $object);
+	}
+      }
+
+      return(\@objects);
+    }
+  }
+
   return;
 }
 
 # That's all folks
 1;
-
-__END__
-
-example channel URL
-
-   http://www.tvnyt.fi/ohjelmaopas/getChannelPrograms.aspx?channel=1&start=201012180000&timestamp=0
-
-  timestamp: random number between 0 and 9999? (check javascript code)
-
-
-#!/usr/bin/perl -w
-use 5.008;
-use strict;
-use warnings;
-
-use HTML::Entities qw(decode_entities);
-use JSON qw();
-
-# Parse JSON
-die "usage: $0 <json file>\n" unless @ARGV;
-my $json;
-{
-  local $/;
-  open(my $fh, "<:utf8", $ARGV[0]) or die "$0: can't open file '$ARGV[0]': $!\n";
-  $json = <$fh>;
-  close($fh);
-}
-
-my $parser = JSON->new();
-# Accept "x:.." instead of the correct "'x':..."
-$parser->allow_barekey();
-my $data = eval {
-  $parser->decode($json)
-};
-die "$0: JSON parse error: $@\n" if $@;
-
-binmode(STDOUT, ":utf8");
-
-# programme data
-if ((exists $data->{1}) && (ref($data->{1}) eq "ARRAY")) {
-  my $programmes = $data->{1};
-  print "FOUND ", scalar(@{ $programmes }), " programmes\n";
-  foreach my $programme (@{ $programmes }) {
-    my $start = $programme->{start};
-    my $stop  = $programme->{stop};
-    my $title = decode_entities($programme->{title});
-    my $desc  = decode_entities($programme->{desc});
-    if (defined($start) && defined($stop) && defined($title)) {
-      print "Programme ($start -> $stop) $title: $desc\n";
-    }
-  }
-}
-
-# That's all folks...
-exit 0;
