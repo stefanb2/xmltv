@@ -71,6 +71,11 @@ sub grab {
   if (length($content)) {
     # Accept "x:.." instead of the correct "'x':..."
     my $parser = JSON->new()->allow_barekey();
+
+    # Fixup data
+    $content =~ s/\\/\\\\/g; # some string contain illegal escapes
+
+    # Parse data
     my $data   = eval {
       $parser->decode($content)
     };
