@@ -23,7 +23,9 @@ sub description { 'tvnyt.fi' }
 
 # Copied from Javascript code. No idea why we should do this...
 sub _timestamp() {
-  return("timestamp=" . int(rand(10000)));
+  # This obviously breaks caching. Use constant value instead
+  #return("timestamp=" . int(rand(10000)));
+  return("timestamp=0");
 }
 
 # Grab channel list
