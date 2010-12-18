@@ -12,7 +12,7 @@ use strict;
 use warnings;
 use base qw(Exporter);
 
-our @EXPORT      = qw(message debug fetchRaw fetchTree);
+our @EXPORT      = qw(message debug fetchRaw fetchTree timeToEpoch);
 our @EXPORT_OK   = qw(setQuiet setDebug);
 our %EXPORT_TAGS = (
 		    main => [qw(message debug setQuiet setDebug)],
@@ -21,6 +21,7 @@ our %EXPORT_TAGS = (
 # Perl core modules
 use Carp;
 use Encode qw(decode_utf8);
+use Time::Local qw(timelocal);
 
 # Other modules
 use HTML::TreeBuilder;
@@ -68,6 +69,14 @@ sub fetchTree($) {
   $tree->parse($content) or croak("fetchTree() parse failure for '$url'");
   $tree->eof;
   return($tree);
+}
+
+# Take a fi::day (day/month/year) and the program start time (hour/minute)
+# and convert it to seconds since Epoch in the current time zone
+sub timeToEpoch($$$) {
+  my($date, $hour, $minute) = @_;
+  return(timelocal(0, $minute, $hour,
+		   $date->day(), $date->month() - 1, $date->year()));
 }
 
 # That's all folks

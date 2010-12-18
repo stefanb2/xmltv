@@ -11,8 +11,6 @@ package fi::source::telkku;
 use strict;
 use warnings;
 
-use Time::Local qw(timelocal);
-
 # Import from internal modules
 fi::common->import();
 
@@ -69,14 +67,6 @@ sub channels {
   return;
 }
 
-# Take a day (day/month/year) and the program start time (hour/minute)
-# and convert it to seconds since Epoch in the current time zone
-sub _program_time_to_epoch($$) {
-  my($date, $program) = @_;
-  return(timelocal(0, $program->{minute}, $program->{hour},
-		   $date->day(), $date->month() - 1, $date->year()));
-}
-
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -84,11 +74,8 @@ sub grab {
   # Get channel number from XMLTV id
   return unless my($channel) = ($id =~ /^(\d+)\.telkku\.com$/);
 
-  # Generate day URL
-  my $url = "http://www.telkku.com/channel/list/$channel/$today";
-
   # Fetch & parse HTML
-  my $root = fetchTree($url);
+  my $root = fetchTree("http://www.telkku.com/channel/list/$channel/$today");
   if ($root) {
 
     #
@@ -174,14 +161,14 @@ sub grab {
     my $date          = shift(@dates);
     my $current       = shift(@programmes);
     my $current_start = $current->{start};
-    my $current_epoch = _program_time_to_epoch($date, $current);
+    my $current_epoch = timeToEpoch($date, $current->{hour}, $current->{minute});
     foreach my $next (@programmes) {
 
       # Start of next program might be on the next day
       my $next_start = $next->{start};
       $date          = shift(@dates)
 	if $current_start > $next_start;
-      my $next_epoch = _program_time_to_epoch($date, $next);
+      my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
 
       # Create program object
       debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
