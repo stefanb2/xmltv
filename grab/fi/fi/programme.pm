@@ -77,7 +77,7 @@ sub dump {
 	       stop    => _epoch_to_xmltv_time($self->{stop}),
 	       title   => [[$self->{title}, "fi"]],
 	      );
-  debug(3, "XMLTV programme '$xmltv{start}':'$xmltv{stop}' '$self->{title}'");
+  debug(3, "XMLTV programme '$xmltv{channel}' '$xmltv{start} -> $xmltv{stop}' '$self->{title}'");
 
   # XMLTV programme descriptor (optional parts)
   if (exists $self->{description}) {

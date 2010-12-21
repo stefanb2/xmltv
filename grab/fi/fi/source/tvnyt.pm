@@ -61,6 +61,9 @@ sub _toEpoch($) {
   return(fullTimeToEpoch($year, $month, $day, $hour, $minute));
 }
 
+# Duplicate programme protection: IDs we already processed
+my %processed;
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -101,6 +104,9 @@ sub grab {
     #     ]
     # }
     #
+    # ID is unique, i.e. if a program runs over midnight and therefore
+    # appears today and tomorrow, the ID in both entries is the same,
+    #
     # Category types:
     #
     #   0 - unknown
@@ -118,15 +124,20 @@ sub grab {
 
       my @objects;
       foreach my $array_entry (@{ $data->{1} }) {
+	my $pid   = $array_entry->{id};
 	my $start = $array_entry->{start};
 	my $stop  = $array_entry->{stop};
 	my $title = decode_entities($array_entry->{title});
 	my $desc  = decode_entities($array_entry->{desc});
 
 	# Sanity check
-	if (($start = _toEpoch($start)) &&
+	if (defined($pid)               &&
+	    ($start = _toEpoch($start)) &&
 	    ($stop  = _toEpoch($stop))  &&
 	    length($title)) {
+
+	  # Duplicate check
+	  unless ($processed{$pid}++) {
 	    debug(3, "List entry $channel ($start -> $stop) $title");
 	    debug(4, $desc);
 
@@ -134,6 +145,9 @@ sub grab {
 	    my $object = fi::programme->new($id, $title, $start, $stop);
 	    $object->description($desc);
 	    push(@objects, $object);
+	  } else {
+	    debug(3, "Ignoring duplicate entry $channel ($start -> $stop) $title");
+	  }
 	}
       }
 
