@@ -29,6 +29,9 @@ export PERL5LIB=${xmltv_lib}
 # Command line options
 for arg in $*; do
     case $arg in
+	debug)
+	    debug="$debug --debug"
+	    ;;
 	merge)
 	    merge_script=1
             ;;
@@ -53,6 +56,7 @@ if [ -z "$preserve_directory" ]; then
     rm -rf ${test_dir}
     mkdir ${test_dir}
 fi
+script_file="${script_file} ${debug}"
 cd ${test_dir}
 set -x +e
 
