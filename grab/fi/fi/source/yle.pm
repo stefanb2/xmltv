@@ -98,19 +98,20 @@ sub grab {
     #
     # - first entry always starts on $today
     # - last entry always ends on $tomorrow
+    # - the end time in "desc_time" is unfortunately unreliable and leads to
+    #   overlapping programme entries.
     #
-    my @objects;
+    my @data;
     if (my @programmes = $root->look_down("class" => qr/^programme\s+/)) {
+
       foreach my $programme (@programmes) {
 	my $start = $programme->look_down("class", "start");
 	my $title = $programme->look_down("class", "desc_title");
 	my $desc  = $programme->look_down("class", "desc");
-	my $span  = $programme->look_down("class", "desc_time");
 
-	if ($start && $title && $desc && $span) {
+	if ($start && $title && $desc) {
 	  my $start = join("", $start->content_list());
 	  my $title = join("", $title->content_list());
-	  my $span  = join("", $span->content_list());
 
 	  # Extract text elements from desc (why is this so complicated?)
 	  my $desc = join("", grep { not ref($_) } $desc->content_list());
@@ -118,27 +119,20 @@ sub grab {
 	  $desc =~ s/\s+$//;
 
 	  # Sanity checks
-	  if ((my($start_hour, $start_minute) = ($start =~ /^(\d{2}).(\d{2})/)) &&
-	      (my($stop_hour,  $stop_minute)  = ($span =~ /\s+$start\s+-\s+(\d{2}).(\d{2})/)) &&
+	  if ((my($hour, $minute) = ($start =~ /^(\d{2}).(\d{2})/)) &&
 	      length($title)) {
-	    debug(3, "List entry $channel ($start_hour:$start_minute -> $stop_hour:$stop_minute) $title");
+	    debug(3, "List entry $channel ($start:$minute) $title");
 	    debug(4, $desc);
 
-	    # Stop time can be 24:00
-	    $stop_hour = 0 if $stop_hour == 24;
-
-	    # Offset in minutes from midnight
-	    my $start_offset = $start_hour * 60 + $start_minute;
-	    my $stop_offset  = $stop_hour  * 60 + $stop_minute;
-
-	    # Create program object
-	    my $object = fi::programme->new($id, $title,
-					    timeToEpoch($today,
-							$start_hour, $start_minute),
-					    timeToEpoch($start_offset < $stop_offset ? $today : $tomorrow,
-							$stop_hour, $stop_minute));
-	    $object->description($desc);
-	    push(@objects, $object);
+	    # Add programme
+	    push(@data, {
+			 description => $desc,
+			 hour        => $hour,
+			 minute      => $minute,
+			 # minutes since midnight
+			 start       => $hour * 60 + $minute,
+			 title       => $title,
+			});
 	  }
 	}
       }
@@ -146,6 +140,35 @@ sub grab {
 
     # Done with the HTML tree
     $root->delete();
+
+    # No data found -> return empty list
+    return unless @data;
+
+    my @objects;
+    my $date          = $today;
+    my $current       = shift(@data);
+    my $current_start = $current->{start};
+    my $current_epoch = timeToEpoch($date, $current->{hour}, $current->{minute});
+    foreach my $next (@data) {
+
+      # Start of next program might be on the next day
+      my $next_start = $next->{start};
+      $date          = $tomorrow
+	if $current_start > $next_start;
+      my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
+
+      # Create program object
+      debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
+      my $object = fi::programme->new($id, $current->{title},
+				      $current_epoch, $next_epoch);
+      $object->description($current->{description});
+      push(@objects, $object);
+
+      # Move to next program
+      $current       = $next;
+      $current_start = $next_start;
+      $current_epoch = $next_epoch;
+    }
 
     return(\@objects);
   }
