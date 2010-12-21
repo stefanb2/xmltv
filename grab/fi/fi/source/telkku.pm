@@ -13,6 +13,7 @@ use warnings;
 
 # Import from internal modules
 fi::common->import();
+fi::programmeStartOnly->import();
 
 # Description
 sub description { 'telkku.com' }
@@ -89,7 +90,7 @@ sub grab {
     #   ...
     #  </ul>
     #
-    my @programmes;
+    my $opaque = startProgrammeList();
     if (my $container = $root->look_down("class" => "programList")) {
       if (my @list = $container->find("li")) {
 	foreach my $list_entry (@list) {
@@ -110,14 +111,7 @@ sub grab {
 		debug(4, $desc);
 
 		# Only record entry if title isn't empty
-		push(@programmes, {
-				   description => $desc,
-				   hour        => $hour,
-				   minute      => $minute,
-				   # minutes since midnight
-				   start       => $hour * 60 + $minute,
-				   title       => $title,
-				  })
+		appendProgramme($opaque, $hour, $minute, $title, $desc)
 		  if length($title) > 0;
 	      }
 	    }
@@ -128,9 +122,6 @@ sub grab {
 
     # Done with the HTML tree
     $root->delete();
-
-    # No data found -> return empty list
-    return unless @programmes;
 
     # Each page on telkku.com contains the program information
     # for one channel for one whole day.
@@ -150,40 +141,8 @@ sub grab {
     #
     # The lines in [] don't appear on every page.
     #
-    # Check for day crossing between first and second entry
-    my @dates = ($today, $tomorrow);
-    unshift(@dates, $yesterday)
-      if ((@programmes > 1) &&
-	  ($programmes[0]->{start} > $programmes[1]->{start}));
-
-
-    my @objects;
-    my $date          = shift(@dates);
-    my $current       = shift(@programmes);
-    my $current_start = $current->{start};
-    my $current_epoch = timeToEpoch($date, $current->{hour}, $current->{minute});
-    foreach my $next (@programmes) {
-
-      # Start of next program might be on the next day
-      my $next_start = $next->{start};
-      $date          = shift(@dates)
-	if $current_start > $next_start;
-      my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
-
-      # Create program object
-      debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
-      my $object = fi::programme->new($id, $current->{title},
-				      $current_epoch, $next_epoch);
-      $object->description($current->{description});
-      push(@objects, $object);
-
-      # Move to next program
-      $current       = $next;
-      $current_start = $next_start;
-      $current_epoch = $next_epoch;
-    }
-
-    return(\@objects);
+    # Convert list to program objects
+    return(convertProgrammeList($opaque, $id, $yesterday, $today, $tomorrow));
   }
 
   return;

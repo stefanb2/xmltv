@@ -13,6 +13,7 @@ use warnings;
 
 # Import from internal modules
 fi::common->import();
+fi::programmeStartOnly->import();
 
 # Description
 sub description { 'yle.fi' }
@@ -101,7 +102,7 @@ sub grab {
     # - the end time in "desc_time" is unfortunately unreliable and leads to
     #   overlapping programme entries.
     #
-    my @data;
+    my $opaque = startProgrammeList();
     if (my @programmes = $root->look_down("class" => qr/^programme\s+/)) {
 
       foreach my $programme (@programmes) {
@@ -125,14 +126,7 @@ sub grab {
 	    debug(4, $desc);
 
 	    # Add programme
-	    push(@data, {
-			 description => $desc,
-			 hour        => $hour,
-			 minute      => $minute,
-			 # minutes since midnight
-			 start       => $hour * 60 + $minute,
-			 title       => $title,
-			});
+	    appendProgramme($opaque, $hour, $minute, $title, $desc);
 	  }
 	}
       }
@@ -141,41 +135,12 @@ sub grab {
     # Done with the HTML tree
     $root->delete();
 
-    # No data found -> return empty list
-    return unless @data;
-
-    my @objects;
-    my $date          = $today;
-    my $current       = shift(@data);
-    my $current_start = $current->{start};
-    my $current_epoch = timeToEpoch($date, $current->{hour}, $current->{minute});
-    foreach my $next (@data) {
-
-      # Start of next program might be on the next day
-      my $next_start = $next->{start};
-      $date          = $tomorrow
-	if $current_start > $next_start;
-      my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
-
-      # Create program object
-      debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
-      my $object = fi::programme->new($id, $current->{title},
-				      $current_epoch, $next_epoch);
-      $object->description($current->{description});
-      push(@objects, $object);
-
-      # Move to next program
-      $current       = $next;
-      $current_start = $next_start;
-      $current_epoch = $next_epoch;
-    }
-
-    return(\@objects);
+    # Convert list to program objects
+    return(convertProgrammeList($opaque, $id, $yesterday, $today, $tomorrow));
   }
 
   return;
 }
-
 
 # That's all folks
 1;
