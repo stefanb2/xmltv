@@ -247,6 +247,9 @@ sub doGrab() {
   # Generate list of days
   my $dates = fi::day->generate($Option{offset}, $Option{days});
 
+  # Set up time zone
+  setTimeZone();
+
   # Create XMLTV writer
   my $writer = _createXMLTVWriter();
 
