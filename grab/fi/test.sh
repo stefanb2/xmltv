@@ -93,9 +93,10 @@ for d in $(seq 1 9); do
 done
 ${xmltv_script}/tv_cat t_fi_full_10.xml > /dev/null 2>t_fi_output.log
 ${xmltv_script}/tv_sort --duplicate-error t_fi_full_10.xml > t_fi_full_10.sorted.xml 2>>t_fi_output.log
-${xmltv_script}/tv_cat t_fi_single_*.xml >t_fi_full_10-2.xml 2>>t_fi_output.log
-${xmltv_script}/tv_sort --duplicate-error t_fi_full_10-2.xml > t_fi_full_10-2.sorted.xml 2>>t_fi_output.log
 check_log t_fi_output.log
+${xmltv_script}/tv_cat t_fi_single_*.xml >t_fi_full_10-2.xml 2>t_fi_output-2.log
+${xmltv_script}/tv_sort --duplicate-error t_fi_full_10-2.xml > t_fi_full_10-2.sorted.xml 2>>t_fi_output-2.log
+check_log t_fi_output-2.log
 diff t_fi_full_10.sorted.xml t_fi_full_10-2.sorted.xml >t_fi__10.diff
 check_log t_fi__10.diff
 
