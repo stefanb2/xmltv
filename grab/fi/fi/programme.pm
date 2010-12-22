@@ -67,22 +67,86 @@ sub _epoch_to_xmltv_time($) {
   return(strftime("%Y%m%d%H%M00 +0", @time) . ($time[8] ? "3": "2") . "00");
 }
 
+# Configuration data
+my %series_description;
+my %series_title;
+
 sub dump {
   my($self, $writer, $progressbar) = @_;
+  my $title       = $self->{title};
+  my $description = $self->{description};
+  my $subtitle;
+
+  #
+  # Programme post-processing
+  #
+  # Check 1: title contains episode name
+  #
+  # If title contains a colon (:), check to see if the string on the left-hand
+  # side of the colon has been defined as a series in the configuration file.
+  # If it has, assume that the string on the left-hand side of the colon is
+  # the name of the series and the string on the right-hand side is the name
+  # of the episode.
+  #
+  # Example:
+  #
+  #   config: series title Prisma
+  #   title:  Prisma: Totuus tappajadinosauruksista
+  #
+  # This will generate a program with
+  #
+  #   title:     Prisma
+  #   sub-title: Totuus tappajadinosauruksista
+  #
+  my($left, $right);
+  if ((($left, $right) = ($title =~ /([^:]+):\s*(.*)/)) &&
+      (exists $series_title{$left})) {
+    debug(3, "XMLTV series title '$left' episode '$right'");
+    ($title, $subtitle) = ($left, $right);
+  }
+  #
+  # Check 2: description contains episode name
+  #
+  # Check if the program has a description. If so, also check if the title
+  # of the program has been defined as a series in the configuration. If it
+  # has, assume that the first sentence (i.e. the text before the first
+  # period) marks the name of the episode.
+  #
+  # Example:
+  #
+  #   config:      series title Batman
+  #   description: Pingviinin paluu. Amerikkalainen animaatiosarja....
+  #
+  # This will generate a program with
+  #
+  #   title:       Batman
+  #   sub-title:   Pingviinin paluu.
+  #   description: Amerikkalainen animaatiosarja....
+  #
+  elsif ((defined $description)               &&
+	 (exists $series_description{$title}) &&
+         (($left, $right) = ($description =~ /^\s*([^.]+)\.\s*(.*)/))) {
+    debug(3, "XMLTV series title '$title' episode '$left'");
+    ($subtitle, $description) = ($left, $right);
+  }
 
   # XMLTV programme desciptor (mandatory parts)
   my %xmltv = (
 	       channel => $self->{channel},
 	       start   => _epoch_to_xmltv_time($self->{start}),
 	       stop    => _epoch_to_xmltv_time($self->{stop}),
-	       title   => [[$self->{title}, "fi"]],
+	       title   => [[$title, "fi"]],
 	      );
   debug(3, "XMLTV programme '$xmltv{channel}' '$xmltv{start} -> $xmltv{stop}' '$self->{title}'");
 
   # XMLTV programme descriptor (optional parts)
-  if (exists $self->{description}) {
-    $xmltv{desc} = [[$self->{description}, "fi"]];
-    debug(4, $self->{description});
+  if (defined($subtitle)) {
+    $xmltv{'sub-title'} = [[$subtitle, "fi"]];
+    debug(3, "XMLTV programme episode: $subtitle");
+  }
+  if (defined($description) && length($description)) {
+    $xmltv{desc} = [[$description, "fi"]];
+    debug(4, $description);
   }
 
   $writer->write_programme(\%xmltv);
@@ -93,8 +157,21 @@ sub dump {
 # Parse config line
 sub parseConfigLine {
   my($class, $line) = @_;
-  # TBA...
-  return;
+
+  # Extract words
+  my($series, $keyword, $param) = split(' ', $line, 3);
+  return unless $series eq "series";
+
+  if ($keyword eq "description") {
+    $series_description{$param}++;
+  } elsif ($keyword eq "title") {
+    $series_title{$param}++;
+  } else {
+    # Unknown series configuration
+    return;
+  }
+
+  return(1);
 }
 
 # Fix overlapping programmes
