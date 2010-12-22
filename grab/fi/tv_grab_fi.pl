@@ -232,9 +232,12 @@ sub doGrab() {
 	  if exists $channels{$id};
 	$channels{$id} = $name;
 
-	# For now ignore the rest...
+      # Programme definition
+      } elsif (fi::programme->parseConfigLine($_)) {
+	# Nothing to be done here
+
       } else {
-	# TBA...
+	warn("bad configuration line in file '$file', line $.: $_\n");
       }
     }
 

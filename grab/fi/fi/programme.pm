@@ -90,6 +90,13 @@ sub dump {
 }
 
 # class methods
+# Parse config line
+sub parseConfigLine {
+  my($class, $line) = @_;
+  # TBA...
+  return;
+}
+
 # Fix overlapping programmes
 sub fixOverlaps {
   my($class, $list) = @_;
