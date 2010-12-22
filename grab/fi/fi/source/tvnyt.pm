@@ -153,6 +153,9 @@ sub grab {
 	}
       }
 
+      # Fix overlapping programmes
+      fi::programme->fixOverlaps(\@objects);
+
       return(\@objects);
     }
   }

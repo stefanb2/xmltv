@@ -89,5 +89,27 @@ sub dump {
   $progressbar->update() if $progressbar;
 }
 
+# class methods
+# Fix overlapping programmes
+sub fixOverlaps {
+  my($class, $list) = @_;
+
+  # No need to cleanup empty/one-entry lists
+  return unless defined($list) && (@{ $list } >= 2);
+
+  my $current = $list->[0];
+  foreach my $next (@{ $list }[1..$#{ $list }]) {
+
+    # Does next programme start before current one ends?
+    if ($current->{stop} > $next->{start}) {
+      debug(3, "Fixing overlapping programme '$current->{title}' $current->{stop} -> $next->{start}.");
+      $current->{stop} = $next->{start};
+    }
+
+    # Next programme
+    $current = $next;
+  }
+}
+
 # That's all folks
 1;
