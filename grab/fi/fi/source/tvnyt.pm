@@ -131,10 +131,12 @@ sub grab {
 	my $desc  = decode_entities($array_entry->{desc});
 
 	# Sanity check
+	# Drop "no programm" entries
 	if (defined($pid)               &&
 	    ($start = _toEpoch($start)) &&
 	    ($stop  = _toEpoch($stop))  &&
-	    length($title)) {
+	    length($title)              &&
+	    ($title ne "Ei ohjelmaa.")) {
 
 	  # Duplicate check
 	  unless ($processed{$pid}++) {
