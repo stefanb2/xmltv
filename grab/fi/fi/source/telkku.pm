@@ -51,7 +51,7 @@ sub channels {
 	    if (defined($href) && length($name) &&
 		(my($channel_no) = ($href =~ m,channel/list/(\d+)/,))) {
 	      debug(3, "channel '$name' ($channel_no)");
-	      $channels{"${channel_no}.telkku.com"} = $name;
+	      $channels{"${channel_no}.telkku.com"} = "fi $name";
 	    }
 	  }
 	}
@@ -142,7 +142,8 @@ sub grab {
     # The lines in [] don't appear on every page.
     #
     # Convert list to program objects
-    return(convertProgrammeList($opaque, $id, $yesterday, $today, $tomorrow));
+    return(convertProgrammeList($opaque, $id, "fi",
+				$yesterday, $today, $tomorrow));
   }
 
   return;

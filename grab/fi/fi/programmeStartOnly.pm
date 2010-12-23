@@ -32,8 +32,8 @@ sub appendProgramme($$$$$$) {
 			 });
 }
 
-sub convertProgrammeList($$$$$) {
-  my($programmes, $id, $yesterday, $today, $tomorrow) = @_;
+sub convertProgrammeList($$$$$$) {
+  my($programmes, $id, $language, $yesterday, $today, $tomorrow) = @_;
 
   # No data found -> return empty list
   return unless @{ $programmes };
@@ -59,7 +59,7 @@ sub convertProgrammeList($$$$$) {
 
     # Create program object
     debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
-    my $object = fi::programme->new($id, $current->{title},
+    my $object = fi::programme->new($id, $language, $current->{title},
 				    $current_epoch, $next_epoch);
     $object->description($current->{description});
     push(@objects, $object);

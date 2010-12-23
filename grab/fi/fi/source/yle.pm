@@ -18,47 +18,61 @@ fi::programmeStartOnly->import();
 # Description
 sub description { 'yle.fi' }
 
+# yle.fi offers program guides in multiple languages
+#                language URL attribute
+#                |      XMLTV language code
+#                |      |
+my %languages = (
+		 fi => "fi",
+		 se => "sv",
+		);
+
 # Grab channel list
 sub channels {
+  my %channels;
 
-  # Fetch & parse HTML
-  my $root = fetchTree("http://ohjelmaopas.yle.fi/");
-  if ($root) {
-    my %channels;
+  # For each language
+  while (my($language, $code) = each %languages) {
 
-    #
-    # Channel list can be found from this dropdown:
-    #
-    # <select name="week" id="viikko_dropdown" class="dropdown">
-    #   <option value="">Valitse kanava</option>
-    #   <option value="tv1">YLE TV1</option>
-    #   ...
-    #   <option value="tvf">TV Finland (CET)</option>
-    # </select>
-    #
-    if (my $container = $root->look_down("id" => "viikko_dropdown")) {
-      if (my @options = $container->find("option")) {
-	debug(2, "Source yle.fi found " . scalar(@options) . " channels");
-	foreach my $option (@options) {
-	  my $id   = $option->attr("value");
-	  my $name = $option->as_text();
+    # Fetch & parse HTML
+    my $root = fetchTree("http://ohjelmaopas.yle.fi/?lang=$language");
+    if ($root) {
 
-	  if (defined($id) && length($id) && length($name)) {
-	    debug(3, "channel '$name' ($id)");
-	    $channels{"${id}.yle.fi"} = $name;
+      #
+      # Channel list can be found from this dropdown:
+      #
+      # <select name="week" id="viikko_dropdown" class="dropdown">
+      #   <option value="">Valitse kanava</option>
+      #   <option value="tv1">YLE TV1</option>
+      #   ...
+      #   <option value="tvf">TV Finland (CET)</option>
+      # </select>
+      #
+      if (my $container = $root->look_down("id" => "viikko_dropdown")) {
+	if (my @options = $container->find("option")) {
+	  debug(2, "Source ${language}.yle.fi found " . scalar(@options) . " channels");
+	  foreach my $option (@options) {
+	    my $id   = $option->attr("value");
+	    my $name = $option->as_text();
+
+	    if (defined($id) && length($id) && length($name)) {
+	      debug(3, "channel '$name' ($id)");
+	      $channels{"${id}.${language}.yle.fi"} = "$code $name";
+	    }
 	  }
 	}
       }
+
+      # Done with the HTML tree
+      $root->delete();
+
+    } else {
+      return;
     }
-
-    # Done with the HTML tree
-    $root->delete();
-
-    debug(2, "Source yle.fi parsed " . scalar(keys %channels) . " channels");
-    return(\%channels);
   }
 
-  return;
+  debug(2, "Source yle.fi parsed " . scalar(keys %channels) . " channels");
+  return(\%channels);
 }
 
 # Grab one day
@@ -66,10 +80,14 @@ sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
 
   # Get channel number from XMLTV id
-  return unless my($channel) = ($id =~ /^(\S+)\.yle\.fi$/);
+  return unless my($channel, $language) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
+
+  # Select language
+  return unless exists $languages{$language};
+  my $code = $languages{$language};
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://ohjelmaopas.yle.fi/?groups=$channel&d=$today");
+  my $root = fetchTree("http://ohjelmaopas.yle.fi/?lang=$language&groups=$channel&d=$today");
   if ($root) {
 
     #
@@ -107,22 +125,22 @@ sub grab {
 
       foreach my $programme (@programmes) {
 	my $start = $programme->look_down("class", "start");
-	my $title = $programme->look_down("class", "desc_title");
+	my $title = $programme->look_down("class", "programmelink");
 	my $desc  = $programme->look_down("class", "desc");
 
 	if ($start && $title && $desc) {
-	  my $start = join("", $start->content_list());
-	  my $title = join("", $title->content_list());
+	  $start = join("", $start->content_list());
+	  $title = join("", $title->content_list());
 
 	  # Extract text elements from desc (why is this so complicated?)
-	  my $desc = join("", grep { not ref($_) } $desc->content_list());
+	  $desc = join("", grep { not ref($_) } $desc->content_list());
 	  $desc =~ s/^\s+//;
 	  $desc =~ s/\s+$//;
 
 	  # Sanity checks
-	  if ((my($hour, $minute) = ($start =~ /^(\d{2}).(\d{2})/)) &&
+	  if ((my($hour, $minute) = ($start =~ /^(\d{2})\.(\d{2})/)) &&
 	      length($title)) {
-	    debug(3, "List entry $channel ($start:$minute) $title");
+	    debug(3, "List entry $channel ($hour:$minute) $title");
 	    debug(4, $desc);
 
 	    # Add programme
@@ -136,7 +154,8 @@ sub grab {
     $root->delete();
 
     # Convert list to program objects
-    return(convertProgrammeList($opaque, $id, $yesterday, $today, $tomorrow));
+    return(convertProgrammeList($opaque, $id, $code,
+				$yesterday, $today, $tomorrow));
   }
 
   return;

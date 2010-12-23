@@ -24,17 +24,18 @@ sub _trim {
 
 # Constructor
 sub new {
-  my($class, $channel, $title, $start, $stop) = @_;
+  my($class, $channel, $language, $title, $start, $stop) = @_;
   _trim($title);
   croak "${class}::new called without valid title, start or stop"
     unless defined($channel) && defined($title) && (length($title) > 0) &&
            defined($start) && defined($stop);
 
   my $self = {
-	      channel => $channel,
-	      title   => $title,
-	      start   => $start,
-	      stop    => $stop
+	      channel  => $channel,
+	      language => $language,
+	      title    => $title,
+	      start    => $start,
+	      stop     => $stop,
 	     };
 
   return(bless($self, $class));
@@ -47,6 +48,8 @@ sub description {
   $self->{description} = $description
     if defined($description) && (length($description) > 0);
 }
+
+sub language { $_[0]->{language} }
 
 # Convert seconds since Epoch to XMLTV time stamp
 #
@@ -73,6 +76,7 @@ my %series_title;
 
 sub dump {
   my($self, $writer, $progressbar) = @_;
+  my $language    = $self->{language};
   my $title       = $self->{title};
   my $description = $self->{description};
   my $subtitle;
@@ -135,17 +139,17 @@ sub dump {
 	       channel => $self->{channel},
 	       start   => _epoch_to_xmltv_time($self->{start}),
 	       stop    => _epoch_to_xmltv_time($self->{stop}),
-	       title   => [[$title, "fi"]],
+	       title   => [[$title, $language]],
 	      );
   debug(3, "XMLTV programme '$xmltv{channel}' '$xmltv{start} -> $xmltv{stop}' '$self->{title}'");
 
   # XMLTV programme descriptor (optional parts)
   if (defined($subtitle)) {
-    $xmltv{'sub-title'} = [[$subtitle, "fi"]];
+    $xmltv{'sub-title'} = [[$subtitle, $language]];
     debug(3, "XMLTV programme episode: $subtitle");
   }
   if (defined($description) && length($description)) {
-    $xmltv{desc} = [[$description, "fi"]];
+    $xmltv{desc} = [[$description, $language]];
     debug(4, $description);
   }
 

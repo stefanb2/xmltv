@@ -39,7 +39,7 @@ sub channels {
     # 2) even entries in the list are converted to XMLTV ID
     # 3) fill hash from list (even -> key [id], odd -> value [name])
     my %channels = (
-		    map { ($count++ % 2) == 0 ? "$_.tvnyt.fi" : $_ }
+		    map { ($count++ % 2) == 0 ? "$_.tvnyt.fi" : "fi $_" }
 		      $content =~ /\["(\d+)","([^\"]+)","[^\"]+"\]/g
 		   );
     debug(2, "Source tvnyt.fi parsed " . scalar(keys %channels) . " channels");
@@ -144,7 +144,7 @@ sub grab {
 	    debug(4, $desc);
 
 	    # Create program object
-	    my $object = fi::programme->new($id, $title, $start, $stop);
+	    my $object = fi::programme->new($id, "fi", $title, $start, $stop);
 	    $object->description($desc);
 	    push(@objects, $object);
 	  } else {

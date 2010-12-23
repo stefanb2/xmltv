@@ -160,11 +160,11 @@ exit 0;
   }
 }
 
-sub _addChannel($$$) {
-  my($writer, $id, $name) = @_;
+sub _addChannel($$$$) {
+  my($writer, $id, $name, $language) = @_;
   $writer->write_channel({
 			  id             => $id,
-			  'display-name' => [[$name, "fi"]],
+			  'display-name' => [[$name, $language]],
 			 });
 }
 
@@ -181,8 +181,9 @@ sub doListChannels() {
   foreach my $source (@sources) {
     debug(1, "requesting channel list from source '" . $source->description ."'");
     if (my $list = $source->channels()) {
-      while (my($id, $name) = each %{ $list }) {
-	_addChannel($writer, $id, $name);
+      while (my($id, $value) = each %{ $list }) {
+	my($language, $name) = split(" ", $value, 2);
+	_addChannel($writer, $id, $name, $language);
       }
     }
   }
@@ -263,12 +264,16 @@ sub doGrab() {
       foreach my $source (@sources) {
 	if (my $programmes = $source->grab($id,
 					   @{ $dates }[$i - 1..$i + 1])) {
-	  # Add channel ID & name (once)
-	  _addChannel($writer, $id, $channels{$id})
-	    unless $seen{$id}++;
 
-	  # Add programmes to list
-	  push(@programmes, @{ $programmes });
+	  if (@{ $programmes }) {
+	    # Add channel ID & name (once)
+	    _addChannel($writer, $id, $channels{$id},
+			$programmes->[0]->language())
+	      unless $seen{$id}++;
+
+	    # Add programmes to list
+	    push(@programmes, @{ $programmes });
+	  }
 	}
       }
     }
