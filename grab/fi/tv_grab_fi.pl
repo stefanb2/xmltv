@@ -81,6 +81,7 @@ if (GetOptions(\%Option,
 	       "config-file=s",
 	       "days=i",
 	       "debug|d+",
+	       "gui:s",
 	       "help|h|?",
 	       "list-channels",
 	       "offset=i",
@@ -157,6 +158,7 @@ exit 0;
     if ($Option{output}) {
       close($ofh) or die "$0: write error on file '$Option{output}': $!";
     }
+    message("DONE");
   }
 }
 
@@ -166,6 +168,26 @@ sub _addChannel($$$$) {
 			  id             => $id,
 			  'display-name' => [[$name, $language]],
 			 });
+}
+
+{
+  my $bar;
+
+  sub _createProgressBar($$) {
+    my($label, $count) = @_;
+    return if $Option{quiet};
+
+    require XMLTV::Ask;
+    require XMLTV::ProgressBar;
+    XMLTV::Ask::init($Option{gui});
+    $bar = XMLTV::ProgressBar->new({
+				    name  => $label,
+				    count => $count,
+				   });
+  }
+
+  sub _updateProgressBar()  { $bar->update() if defined $bar }
+  sub _destroyProgressBar() { $bar->finish() if defined $bar }
 }
 
 ###############################################################################
@@ -178,6 +200,7 @@ sub doListChannels() {
   my $writer = _createXMLTVWriter();
 
   # Get channels from all sources
+  _createProgressBar("getting list of channels", @sources);
   foreach my $source (@sources) {
     debug(1, "requesting channel list from source '" . $source->description ."'");
     if (my $list = $source->channels()) {
@@ -186,7 +209,9 @@ sub doListChannels() {
 	_addChannel($writer, $id, $name, $language);
       }
     }
+    _updateProgressBar();
   }
+  _destroyProgressBar();
 
   # Done writing
   _closeXMLTVWriter($writer);
@@ -257,6 +282,7 @@ sub doGrab() {
   # For each channel and each day
   my %seen;
   my @programmes;
+  _createProgressBar("getting listings", keys(%channels) * (@{ $dates } - 2));
   foreach my $id (sort keys %channels) {
     debug(1, "XMLTV channel ID: $id");
     for (my $i = 1; $i < $#{ $dates }; $i++) {
@@ -276,10 +302,13 @@ sub doGrab() {
 	  }
 	}
       }
+      _updateProgressBar();
     }
   }
+  _destroyProgressBar();
 
   # Dump programs
+  message("writing XMLTV programme data");
   $_->dump($writer) foreach (@programmes);
 
   # Done writing
@@ -303,6 +332,7 @@ tv_grab_fi - Grab TV listings for Finland
 tv_grab_fi [--cache E<lt>FILEE<gt>]
            [--config-file E<lt>FILEE<gt>]
            [--days E<lt>NE<gt>]
+           [--gui [E<lt>OPTIONE<gt>]]
            [--offset E<lt>NE<gt>]
            [--output E<lt>FILEE<gt>]
            [--quiet]
@@ -321,6 +351,7 @@ tv_grab_fi  --help|-h|-?
 
 tv_grab_fi  --list-channels
            [--cache E<lt>FILEE<gt>]
+           [--gui [E<lt>OPTIONE<gt>]]
            [--quiet]
 
 tv_grab_fi  --version
@@ -380,22 +411,6 @@ Show the version of this grabber.
 File name to cache the fetched HTML data in. This speeds up subsequent runs
 using the same data.
 
-=item B<--quiet>
-
-Suppress any progress messages to the standard output.
-
-=back
-
-=head1 CONFIGURE MODE OPTIONS
-
-=over 8
-
-=item B<--config-file F<FILE>>
-
-File name to write the configuration to.
-
-Default is F<$HOME/.xmltv/tv_grab_fi.conf>.
-
 =item B<--gui [OPTION]>
 
 Enable the graphical user interface. If you don't specify B<OPTION> then
@@ -416,6 +431,22 @@ Terminal output without progress bar
 Tk-based GUI
 
 =back
+
+=item B<--quiet>
+
+Suppress any progress messages to the standard output.
+
+=back
+
+=head1 CONFIGURE MODE OPTIONS
+
+=over 8
+
+=item B<--config-file F<FILE>>
+
+File name to write the configuration to.
+
+Default is F<$HOME/.xmltv/tv_grab_fi.conf>.
 
 =back
 

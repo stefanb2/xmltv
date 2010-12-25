@@ -75,7 +75,7 @@ my %series_description;
 my %series_title;
 
 sub dump {
-  my($self, $writer, $progressbar) = @_;
+  my($self, $writer) = @_;
   my $language    = $self->{language};
   my $title       = $self->{title};
   my $description = $self->{description};
@@ -154,7 +154,6 @@ sub dump {
   }
 
   $writer->write_programme(\%xmltv);
-  $progressbar->update() if $progressbar;
 }
 
 # class methods
