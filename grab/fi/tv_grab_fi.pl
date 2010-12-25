@@ -198,6 +198,21 @@ sub _addChannel($$$$) {
   sub _destroyProgressBar() { $bar->finish() if defined $bar }
 }
 
+sub _getChannels($$) {
+  my($callback, $opaque) = @_;
+
+  # Get channels from all sources
+  _createProgressBar("getting list of channels", @sources);
+  foreach my $source (@sources) {
+    debug(1, "requesting channel list from source '" . $source->description ."'");
+    if (my $list = $source->channels()) {
+      $callback->($opaque, $list);
+    }
+    _updateProgressBar();
+  }
+  _destroyProgressBar();
+}
+
 ###############################################################################
 #
 # Configure Mode
@@ -207,6 +222,12 @@ sub doConfigure() {
   # Get configuration file name
   my $file = _getConfigFile();
   XMLTV::Config_file::check_no_overwrite($file);
+
+  # Get channels
+  _getChannels(sub {
+		 my($writer, $list) = @_;
+	       },
+	       undef);
 }
 
 ###############################################################################
@@ -218,19 +239,15 @@ sub doListChannels() {
   # Create XMLTV writer
   my $writer = _createXMLTVWriter();
 
-  # Get channels from all sources
-  _createProgressBar("getting list of channels", @sources);
-  foreach my $source (@sources) {
-    debug(1, "requesting channel list from source '" . $source->description ."'");
-    if (my $list = $source->channels()) {
-      while (my($id, $value) = each %{ $list }) {
-	my($language, $name) = split(" ", $value, 2);
-	_addChannel($writer, $id, $name, $language);
-      }
-    }
-    _updateProgressBar();
-  }
-  _destroyProgressBar();
+  # Get channels
+  _getChannels(sub {
+		 my($writer, $list) = @_;
+		 while (my($id, $value) = each %{ $list }) {
+		   my($language, $name) = split(" ", $value, 2);
+		   _addChannel($writer, $id, $name, $language);
+		 }
+	       },
+	       $writer);
 
   # Done writing
   _closeXMLTVWriter($writer);
