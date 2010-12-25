@@ -61,6 +61,7 @@ use XMLTV::Memoize;
 #
 ###############################################################################
 # Forward declarations
+sub doConfigure();
 sub doListChannels();
 sub doGrab();
 
@@ -97,7 +98,7 @@ if (GetOptions(\%Option,
 
   if ($Option{configure}) {
     # Configure mode
-    print STDERR "NOT IMPPLEMENTED YET...\n";
+    doConfigure();
 
   } elsif ($Option{'list-channels'}) {
     # List channels mode
@@ -119,6 +120,13 @@ exit 0;
 # Utility functions for the different modes
 #
 ###############################################################################
+sub _getConfigFile() {
+  require XMLTV::Config_file;
+  return(XMLTV::Config_file::filename($Option{'config-file'},
+				      "tv_grab_fi",
+				      $Option{quiet}));
+}
+
 {
   my $ofh;
 
@@ -192,6 +200,17 @@ sub _addChannel($$$$) {
 
 ###############################################################################
 #
+# Configure Mode
+#
+###############################################################################
+sub doConfigure() {
+  # Get configuration file name
+  my $file = _getConfigFile();
+  XMLTV::Config_file::check_no_overwrite($file);
+}
+
+###############################################################################
+#
 # List Channels Mode
 #
 ###############################################################################
@@ -233,10 +252,7 @@ sub doGrab() {
   my %channels;
   {
     # Get configuration file name
-    require XMLTV::Config_file;
-    my $file = XMLTV::Config_file::filename($Option{'config-file'},
-					    "tv_grab_fi",
-					    $Option{quiet});
+    my $file = _getConfigFile();
 
     # Open configuration file. Assume UTF-8 encoding
     open(my $fh, "<:utf8", $file)
