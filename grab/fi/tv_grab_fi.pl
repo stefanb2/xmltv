@@ -206,7 +206,10 @@ sub _getChannels($$) {
   foreach my $source (@sources) {
     debug(1, "requesting channel list from source '" . $source->description ."'");
     if (my $list = $source->channels()) {
-      $callback->($opaque, $list);
+      while (my($id, $value) = each %{ $list }) {
+	my($language, $name) = split(" ", $value, 2);
+	$callback->($opaque, $id, $name, $language);
+      }
     }
     _updateProgressBar();
   }
@@ -229,7 +232,7 @@ sub doConfigure() {
 
   # Get channels
   _getChannels(sub {
-		 my($writer, $list) = @_;
+		 my($opaque, $id, $name, $language) = @_;
 	       },
 	       undef);
 
@@ -250,12 +253,9 @@ sub doListChannels() {
 
   # Get channels
   _getChannels(sub {
-		 my($writer, $list) = @_;
-		 while (my($id, $value) = each %{ $list }) {
-		   my($language, $name) = split(" ", $value, 2);
-		   _addChannel($writer, $id, $name, $language);
-		 }
-	       },
+		 my($writer, $id, $name, $language) = @_;
+		 _addChannel($writer, $id, $name, $language);
+		 },
 	       $writer);
 
   # Done writing
