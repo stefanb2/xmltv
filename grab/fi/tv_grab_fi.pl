@@ -229,12 +229,30 @@ sub doConfigure() {
   # Open configuration file. Assume UTF-8 encoding
   open(my $fh, ">:utf8", $file)
       or die "$0: can't open configuration file '$file': $!";
+  print $fh "# -*- coding: utf-8 -*-\n";
 
   # Get channels
+  my %channels;
   _getChannels(sub {
-		 my($opaque, $id, $name, $language) = @_;
+		 # We only need name and ID
+		 my(undef, $id, $name) = @_;
+		 $channels{$id} = $name;
 	       },
 	       undef);
+
+  # Query user
+  my @sorted  = sort keys %channels;
+  my @answers = XMLTV::Ask::ask_many_boolean(1, map { "add channel $channels{$_} ($_)?" } @sorted);
+
+  # Generate configuration file contents from answers
+  foreach my $id (@sorted) {
+    warn("\nunexpected end of input reached\n"), last
+      unless @answers;
+
+    # Write selection to configuration file
+    my $answer = shift(@answers);
+    print $fh ($answer ? "" : "#"), "channel $id $channels{$id}\n";
+  }
 
   # Check for write errors
   close($fh)
