@@ -223,11 +223,20 @@ sub doConfigure() {
   my $file = _getConfigFile();
   XMLTV::Config_file::check_no_overwrite($file);
 
+  # Open configuration file. Assume UTF-8 encoding
+  open(my $fh, ">:utf8", $file)
+      or die "$0: can't open configuration file '$file': $!";
+
   # Get channels
   _getChannels(sub {
 		 my($writer, $list) = @_;
 	       },
 	       undef);
+
+  # Check for write errors
+  close($fh)
+    or die "$0: can't write to configuration file '$file': $!";
+  message("DONE");
 }
 
 ###############################################################################
