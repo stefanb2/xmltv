@@ -565,6 +565,13 @@ left-hand side of the colon matches C<NAME>. If it does then the left-hand
 side is used as programme title and the right-hand side as the name of the
 episode.
 
+=item B<title map "FROM" 'TO'>
+
+If the programme title starts with the string C<FROM> then replace this part
+with the string C<TO>. The strings must be enclosed in single quotes (C<'>) or
+double quotes (C<">). The title mapping occurs before the C<series> command
+processing.
+
 =back
 
 =head1 SEE ALSO

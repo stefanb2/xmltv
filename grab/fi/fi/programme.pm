@@ -73,6 +73,7 @@ sub _epoch_to_xmltv_time($) {
 # Configuration data
 my %series_description;
 my %series_title;
+my @title_map;
 
 sub dump {
   my($self, $writer) = @_;
@@ -83,6 +84,15 @@ sub dump {
 
   #
   # Programme post-processing
+  #
+  # Title mapping
+  #
+  foreach my $map (@title_map) {
+    if ($map->($title)) {
+      debug(3, "XMLTV title '$self->{title}' mapped to '$title'");
+      last;
+    }
+  }
   #
   # Check 1: title contains episode name
   #
@@ -162,15 +172,27 @@ sub parseConfigLine {
   my($class, $line) = @_;
 
   # Extract words
-  my($series, $keyword, $param) = split(' ', $line, 3);
-  return unless $series eq "series";
+  my($command, $keyword, $param) = split(' ', $line, 3);
 
-  if ($keyword eq "description") {
-    $series_description{$param}++;
-  } elsif ($keyword eq "title") {
-    $series_title{$param}++;
+  if ($command eq "series") {
+    if ($keyword eq "description") {
+      $series_description{$param}++;
+    } elsif ($keyword eq "title") {
+      $series_title{$param}++;
+    } else {
+      # Unknown series configuration
+      return;
+    }
+  } elsif (($command eq "title") &&
+	   ($keyword eq "map")   &&
+	   # Accept "title" and 'title' for each parameter
+	   (my(undef, $from, undef, $to) =
+	    ($param =~ /^([\'\"])([^\1]+)\1\s+([\'\"])([^\3]+)\3/))) {
+    debug(3, "title mapping from '$from' to '$to'");
+    $from = qr/^\Q$from\E/;
+    push(@title_map, sub { $_[0] =~ s/$from/$to/ });
   } else {
-    # Unknown series configuration
+    # Unknown command
     return;
   }
 
