@@ -538,6 +538,35 @@ Write the XML data to F<FILE> instead of the standard output.
 
 =back
 
+=head1 CONFIGURATION FILE SYNTAX
+
+The configuration file is line oriented, each line can contain one command.
+Empty lines and everything after the C<#> comment character is ignored.
+Supported commands are:
+
+=over 8
+
+=item B<channel ID NAME>
+
+Grab information for this channel. C<ID> depends on the source, C<NAME> is
+ignored and forwarded as is to the XMLTV output file. This information can be
+automatically generated using the grabber in the configuration mode.
+
+=item B<series description NAME>
+
+If a programme title matches C<NAME> then the first sentence of the
+description, i.e. everything up to the first period (C<.>), is removed from
+the description and is used as the name of the episode.
+
+=item B<series title NAME>
+
+If a programme title contains a colon (C<:>) then the grabber checks if the
+left-hand side of the colon matches C<NAME>. If it does then the left-hand
+side is used as programme title and the right-hand side as the name of the
+episode.
+
+=back
+
 =head1 SEE ALSO
 
 L<xmltv>.
