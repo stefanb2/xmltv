@@ -555,8 +555,9 @@ automatically generated using the grabber in the configuration mode.
 =item B<series description NAME>
 
 If a programme title matches C<NAME> then the first sentence of the
-description, i.e. everything up to the first period (C<.>), is removed from
-the description and is used as the name of the episode.
+description, i.e. everything up to the first period (C<.>), question mark
+(C<?>) or exclamation mark (C<!>), is removed from the description and is used
+as the name of the episode.
 
 =item B<series title NAME>
 

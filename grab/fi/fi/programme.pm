@@ -124,7 +124,7 @@ sub dump {
   # Check if the program has a description. If so, also check if the title
   # of the program has been defined as a series in the configuration. If it
   # has, assume that the first sentence (i.e. the text before the first
-  # period) marks the name of the episode.
+  # period, question mark or exclamation mark) marks the name of the episode.
   #
   # Example:
   #
@@ -139,7 +139,9 @@ sub dump {
   #
   elsif ((defined $description)               &&
 	 (exists $series_description{$title}) &&
-         (($left, $right) = ($description =~ /^\s*([^.]+)\.\s*(.*)/))) {
+         (($left, $right) = ($description =~ /^\s*([^.!?]+[.!?])\s*(.*)/))) {
+    # We only remove period from episode title, preserve others
+    $left =~ s/\.$//;
     debug(3, "XMLTV series title '$title' episode '$left'");
     ($subtitle, $description) = ($left, $right);
   }
