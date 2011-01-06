@@ -154,8 +154,9 @@ sub grab {
     $root->delete();
 
     # Convert list to program objects
+    # First entry always starts $today -> don't use $yesterday
     return(convertProgrammeList($opaque, $id, $code,
-				$yesterday, $today, $tomorrow));
+				undef, $today, $tomorrow));
   }
 
   return;

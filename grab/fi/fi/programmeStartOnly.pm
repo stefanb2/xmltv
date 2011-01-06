@@ -40,9 +40,17 @@ sub convertProgrammeList($$$$$$) {
 
   # Check for day crossing between first and second entry
   my @dates = ($today, $tomorrow);
-  unshift(@dates, $yesterday)
-    if ((@{ $programmes } > 1) &&
-	($programmes->[0]->{start} > $programmes->[1]->{start}));
+  if ((@{ $programmes } > 1) &&
+      ($programmes->[0]->{start} > $programmes->[1]->{start})) {
+
+    # Did caller specify yesterday?
+    if (defined $yesterday) {
+      unshift(@dates, $yesterday);
+    } else {
+      # No, the first entry is broken -> drop it
+      shift(@{ $programmes });
+    }
+  }
 
   my @objects;
   my $date          = shift(@dates);
