@@ -118,19 +118,22 @@ sub grab {
     # - first entry always starts on $today
     # - last entry always ends on $tomorrow
     # - the end time in "desc_time" is unfortunately unreliable and leads to
-    #   overlapping programme entries.
+    #   overlapping programme entries. We only use it for the last entry.
     #
     my $opaque = startProgrammeList();
     if (my @programmes = $root->look_down("class" => qr/^programme\s+/)) {
+      my($last_hour, $last_minute);
 
       foreach my $programme (@programmes) {
 	my $start = $programme->look_down("class", "start");
 	my $title = $programme->look_down("class", "programmelink");
 	my $desc  = $programme->look_down("class", "desc");
+	my $time  = $programme->look_down("class", "desc_time");
 
-	if ($start && $title && $desc) {
+	if ($start && $title && $desc && $time) {
 	  $start = join("", $start->content_list());
 	  $title = join("", $title->content_list());
+	  $time  = join("", $time->content_list());
 
 	  # Extract text elements from desc (why is this so complicated?)
 	  $desc = join("", grep { not ref($_) } $desc->content_list());
@@ -139,6 +142,8 @@ sub grab {
 
 	  # Sanity checks
 	  if ((my($hour, $minute) = ($start =~ /^(\d{2})\.(\d{2})/)) &&
+	      (($last_hour, $last_minute) =
+	       ($time =~ /\d{2}\.\d{2}\s+-\s+(\d{2})\.(\d{2})/))     &&
 	      length($title)) {
 	    debug(3, "List entry $channel ($hour:$minute) $title");
 	    debug(4, $desc);
@@ -148,6 +153,12 @@ sub grab {
 	  }
 	}
       }
+
+      # Add dummy entry to define stop time for last entry
+      # Check for special case "24:00"
+      appendProgramme($opaque, $last_hour == 24 ? 0 : $last_hour,
+		      $last_minute, "", undef)
+	if defined $last_hour;
     }
 
     # Done with the HTML tree
