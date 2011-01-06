@@ -47,8 +47,8 @@ sub convertProgrammeList($$$$$$) {
     if (defined $yesterday) {
       unshift(@dates, $yesterday);
     } else {
-      # No, the first entry is broken -> drop it
-      shift(@{ $programmes });
+      # No, assume the second entry is broken -> drop it
+      splice(@{ $programmes }, 1, 1);
     }
   }
 
