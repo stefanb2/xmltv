@@ -61,9 +61,6 @@ sub _toEpoch($) {
   return(fullTimeToEpoch($year, $month, $day, $hour, $minute));
 }
 
-# Duplicate programme protection: IDs we already processed
-my %processed;
-
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -104,8 +101,9 @@ sub grab {
     #     ]
     # }
     #
-    # ID is unique, i.e. if a program runs over midnight and therefore
-    # appears today and tomorrow, the ID in both entries is the same,
+    # - the first entry always starts on $today.
+    # - the last entry is a duplicate of the first entry on $tomorrow. We drop
+    #   it to avoid duplicate programme entries.
     #
     # Category types:
     #
@@ -124,7 +122,6 @@ sub grab {
 
       my @objects;
       foreach my $array_entry (@{ $data->{1} }) {
-	my $pid   = $array_entry->{id};
 	my $start = $array_entry->{start};
 	my $stop  = $array_entry->{stop};
 	my $title = decode_entities($array_entry->{title});
@@ -132,26 +129,23 @@ sub grab {
 
 	# Sanity check
 	# Drop "no programm" entries
-	if (defined($pid)               &&
-	    ($start = _toEpoch($start)) &&
+	if (($start = _toEpoch($start)) &&
 	    ($stop  = _toEpoch($stop))  &&
 	    length($title)              &&
 	    ($title ne "Ei ohjelmaa.")) {
 
-	  # Duplicate check
-	  unless ($processed{$pid}++) {
-	    debug(3, "List entry $channel ($start -> $stop) $title");
-	    debug(4, $desc);
+	  debug(3, "List entry $channel ($start -> $stop) $title");
+	  debug(4, $desc);
 
-	    # Create program object
-	    my $object = fi::programme->new($id, "fi", $title, $start, $stop);
-	    $object->description($desc);
-	    push(@objects, $object);
-	  } else {
-	    debug(3, "Ignoring duplicate entry $channel ($start -> $stop) $title");
-	  }
+	  # Create program object
+	  my $object = fi::programme->new($id, "fi", $title, $start, $stop);
+	  $object->description($desc);
+	  push(@objects, $object);
 	}
       }
+
+      # Drop last entry
+      pop(@objects);
 
       # Fix overlapping programmes
       fi::programme->fixOverlaps(\@objects);
