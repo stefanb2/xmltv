@@ -24,10 +24,15 @@ open(my $ifh, "<", "$dir/tv_grab_fi.pl")
   or die "can't open main script file: $!";
 
 # Merge
+my @versions;
 while (<$ifh>) {
 
+  # version marker
+  if (my($version) = /^use constant VERSION => \'\$Id: (\S+ \S+ \S+ \S+)/) {
+    push(@versions, $version);
+
   # insert marker for source modules
-  if (/^# INSERT: SOURCES/) {
+  } elsif (/^\# INSERT: SOURCES/) {
 
     print $ofh <<END_OF_MERGE_TEXT;
 #
@@ -45,7 +50,8 @@ END_OF_MERGE_TEXT
 	or die "can't open source module '$source': $!";
       print "Inserting module '", basename($source), "'\n";
       while (<$sfh>) {
-	next if 1../^# INSERT FROM HERE /;
+	push(@versions, $1) if /^\# VERSION: \$Id: (\S+ \S+ \S+ \S+)/;
+	next if 1../^\# INSERT FROM HERE /;
 	next if /^__END__/..0; # right side always false -> cut to the end
 	print $ofh $_;
       }
@@ -54,8 +60,16 @@ END_OF_MERGE_TEXT
     }
 
   # insert marker for source modules
-  } elsif (/^# CUT CODE START/../^# CUT CODE END/) {
+  } elsif (/^\# CUT CODE START/../^\# CUT CODE END/) {
 
+  # insert version string
+  } elsif (/^use XMLTV::Version /) {
+    my $version = 'generated from\n\t' .
+      join('\n\t', map {
+	sprintf("%-25s  %-5s  %10s  %8s", /^(\S+),v (\S+) (\S+) (\S+)$/)
+      } @versions);
+    s/VERSION;$/"$version";/;
+    print $ofh $_;
   # normal line
   } else {
     print $ofh $_;

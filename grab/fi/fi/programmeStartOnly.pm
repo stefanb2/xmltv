@@ -6,6 +6,8 @@
 #
 # Setup
 #
+# VERSION: $Id: programmeStartOnly.pm,v 1.999 yyyy/mm/dd hh:mm:ss xxx Exp $
+#
 # INSERT FROM HERE ############################################################
 package fi::programmeStartOnly;
 use strict;

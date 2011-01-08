@@ -8,6 +8,8 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
+use constant VERSION => '$Id: tv_grab_fi.pl,v 1.999 yyyy/mm/dd hh:mm:ss xxx Exp $ ';
+
 ###############################################################################
 # INSERT: SOURCES
 ###############################################################################
@@ -43,7 +45,7 @@ BEGIN {
 fi::common->import(':main');
 
 # Basic XMLTV modules
-use XMLTV::Version '$Id: tv_grab_fi,v 1.999 yyy/mm/dd hh:mm:ss xxx Exp $ ';
+use XMLTV::Version VERSION;
 use XMLTV::Capabilities qw(baseline manualconfig cache);
 use XMLTV::Description 'Finland (' .
   join(', ', map { $_->description() } @sources ) .
