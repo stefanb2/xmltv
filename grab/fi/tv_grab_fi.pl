@@ -581,7 +581,7 @@ processing.
 
 L<xmltv>.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 =head2 Current
 
