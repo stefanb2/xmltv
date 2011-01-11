@@ -48,8 +48,8 @@ done
 
 # Setup
 if [ -n "$merge_script" ]; then
-    ${script_dir}/merge.pl
     script_file=${script_dir}/tv_grab_fi
+    ${script_dir}/merge.PL ${script_file}
 fi
 if [ -z "$preserve_directory" ]; then
     echo "Deleting results from last run."

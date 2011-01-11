@@ -8,11 +8,15 @@ use warnings;
 
 use File::Basename;
 
+# output file name
+my($outfile) = @ARGV
+  or die "no output file specified!";
+
 # working directory
 my $dir = dirname($0);
 
 # output file
-open(my $ofh, ">", "$dir/tv_grab_fi")
+open(my $ofh, ">", $outfile)
   or die "can't open output file: $!";
 
 # source modules
@@ -81,7 +85,7 @@ close($ofh)
   or die "error while writing to output file: $!";
 
 # set executable flag
-chmod(0755, "$dir/tv_grab_fi");
+chmod(0755, $outfile);
 
 # That's all folks...
 print "Merge done.\n";
