@@ -170,7 +170,7 @@ sub dump {
     debug(3, "XMLTV programme episode: $subtitle");
   }
   if (defined($category) && length($category)) {
-    $xmltv{desc} = [[$category, $language]];
+    $xmltv{category} = [[$category, $language]];
     debug(4, "XMLTV programme category: $category");
   }
   if (defined($description) && length($description)) {

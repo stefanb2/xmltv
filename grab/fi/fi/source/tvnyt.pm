@@ -63,6 +63,17 @@ sub _toEpoch($) {
   return(fullTimeToEpoch($year, $month, $day, $hour, $minute));
 }
 
+# Category number to name map
+my %category_map = (
+		    0 => undef,
+		    1 => "dokumentit",
+		    2 => "draama",
+		    3 => "lapset",
+		    4 => "uutiset",
+		    5 => "urheilu",
+		    6 => "vapaa aika",
+		   );
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -135,12 +146,17 @@ sub grab {
 	    ($stop  = _toEpoch($stop))  &&
 	    length($title)              &&
 	    ($title ne "Ei ohjelmaa.")) {
+	  my $category = $array_entry->{category};
 
 	  debug(3, "List entry $channel ($start -> $stop) $title");
 	  debug(4, $desc);
 
+	  # Map category number to name
+	  $category = $category_map{$category} if defined($category);
+
 	  # Create program object
 	  my $object = fi::programme->new($id, "fi", $title, $start, $stop);
+	  $object->category($category);
 	  $object->description($desc);
 	  push(@objects, $object);
 	}
