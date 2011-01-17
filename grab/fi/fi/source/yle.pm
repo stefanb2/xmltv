@@ -77,6 +77,42 @@ sub channels {
   return(\%channels);
 }
 
+# Category map
+my $category_map;
+
+# Parse categories and compile map
+#
+# <div id="aihe_list">
+#  <a href="#" style='color:#29a8db;'" class="aihe_linkki" id="aihe_linkki_0">Kaikki</a>
+#  <a href="#" " class="aihe_linkki" id="aihe_linkki_1">Uutiset</a>
+#  <a href="#" " class="aihe_linkki" id="aihe_linkki_2">Ajankohtais</a>
+#  ...
+#  <a href="#" " class="aihe_linkki" id="aihe_linkki_10">Viihde ja musiikki</a>
+# </div>
+sub _parseCategories($$) {
+  my($root, $language) = @_;
+  if (my $container = $root->look_down("id" => "aihe_list")) {
+    if (my @hrefs = $container->find("a")) {
+      debug(2, "Source ${language}.yle.fi found " . scalar(@hrefs) . " categories");
+      foreach my $href (@hrefs) {
+	my $id   = $href->attr("id");
+	my $name = $href->as_text();
+
+	# Ignore category 0 (kaikki)
+	my $category;
+	if (defined($id)                                   &&
+	    (($category) = ($id =~ /^aihe_linkki_(\d+)$/)) &&
+	    $category                                      &&
+	    length($name)) {
+	  debug(3, "category $language '$name' ($category)");
+	  $category_map->{$language}->{$category} = $name;
+	}
+      }
+    }
+  }
+  return($category_map->{$language});
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -91,6 +127,10 @@ sub grab {
   # Fetch & parse HTML
   my $root = fetchTree("http://ohjelmaopas.yle.fi/?lang=$language&groups=$channel&d=$today");
   if ($root) {
+    my $map = $category_map->{$language};
+
+    # Only parse category list once
+    $map = _parseCategories($root, $language) unless defined $map;
 
     #
     # Each programme can be found in a separate <div> node
@@ -147,11 +187,17 @@ sub grab {
 	      (($last_hour, $last_minute) =
 	       ($time =~ /\d{2}\.\d{2}\s+-\s+(\d{2})\.(\d{2})/))     &&
 	      length($title)) {
+	    my($category) = $programme->attr("class") =~ /cat(\d+)/
+	      if defined $map;
+	    $category = $map->{$category}
+	      if defined $category;
+
 	    debug(3, "List entry $channel ($hour:$minute) $title");
+	    debug(4, $category) if defined $category;
 	    debug(4, $desc);
 
 	    # Add programme
-	    appendProgramme($opaque, $hour, $minute, $title, $desc);
+	    appendProgramme($opaque, $hour, $minute, $title, $category, $desc);
 	  }
 	}
       }
@@ -159,7 +205,7 @@ sub grab {
       # Add dummy entry to define stop time for last entry
       # Check for special case "24:00"
       appendProgramme($opaque, $last_hour == 24 ? 0 : $last_hour,
-		      $last_minute, "", undef)
+		      $last_minute, "", undef, undef)
 	if defined $last_hour;
     }
 

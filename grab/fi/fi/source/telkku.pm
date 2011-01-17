@@ -113,7 +113,7 @@ sub grab {
 		debug(4, $desc);
 
 		# Only record entry if title isn't empty
-		appendProgramme($opaque, $hour, $minute, $title, $desc)
+		appendProgramme($opaque, $hour, $minute, $title, undef, $desc)
 		  if length($title) > 0;
 	      }
 	    }

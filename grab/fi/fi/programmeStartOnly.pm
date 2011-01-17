@@ -21,10 +21,11 @@ fi::common->import();
 
 sub startProgrammeList() { return([]) }
 
-sub appendProgramme($$$$$$) {
-  my($programmes, $hour, $minute, $title, $description) = @_;
+sub appendProgramme($$$$$$$) {
+  my($programmes, $hour, $minute, $title, $category, $description) = @_;
 
   push(@{ $programmes }, {
+			  category    => $category,
 			  description => $description,
 			  hour        => $hour,
 			  minute      => $minute,
@@ -71,6 +72,7 @@ sub convertProgrammeList($$$$$$) {
     debug(3, "Programme $id ($current_epoch -> $next_epoch) $current->{title}");
     my $object = fi::programme->new($id, $language, $current->{title},
 				    $current_epoch, $next_epoch);
+    $object->category($current->{category});
     $object->description($current->{description});
     push(@objects, $object);
 
