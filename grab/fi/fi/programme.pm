@@ -44,6 +44,12 @@ sub new {
 }
 
 # instance methods
+sub category {
+  my($self, $category) = @_;
+  _trim($category);
+  $self->{category} = $category
+    if defined($category) && (length($category) > 0);
+}
 sub description {
   my($self, $description) = @_;
   _trim($description);
@@ -81,6 +87,7 @@ sub dump {
   my($self, $writer) = @_;
   my $language    = $self->{language};
   my $title       = $self->{title};
+  my $category    = $self->{category};
   my $description = $self->{description};
   my $subtitle;
 
@@ -162,9 +169,13 @@ sub dump {
     $xmltv{'sub-title'} = [[$subtitle, $language]];
     debug(3, "XMLTV programme episode: $subtitle");
   }
+  if (defined($category) && length($category)) {
+    $xmltv{desc} = [[$category, $language]];
+    debug(4, "XMLTV programme category: $category");
+  }
   if (defined($description) && length($description)) {
     $xmltv{desc} = [[$description, $language]];
-    debug(4, $description);
+    debug(4, "XMLTV programme description: $description");
   }
 
   $writer->write_programme(\%xmltv);
