@@ -66,6 +66,13 @@ sub convertProgrammeList($$$$$$) {
     my $next_start = $next->{start};
     $date          = shift(@dates)
       if $current_start > $next_start;
+
+    # Sanity check
+    unless ($date) {
+      message("WARNING: corrupted data for $id on $today: two date changes detected. Ignoring data!");
+      return([]);
+    }
+
     my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
 
     # Create program object
