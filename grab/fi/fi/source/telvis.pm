@@ -24,6 +24,44 @@ sub description { 'telvis.fi' }
 sub channels {
   my %channels;
 
+  # Fetch & parse HTML
+  my $root = fetchTree("http://www.telvis.fi/tvohjelmat/?vw=channel");
+  if ($root) {
+
+    #
+    # Channel list can be found in multiple <div> nodes
+    #
+    # <div class="progs" style="text-align:left;">
+    #  <a href="/tvohjelmat/?vw=channel&ch=tv1&sh=new&dy=03.02.2011">YLE TV1</a>
+    #  <a href="/tvohjelmat/?vw=channel&ch=tv2&sh=new&dy=03.02.2011">YLE TV2</a>
+    #  ...
+    # </div>
+    #
+    if (my @containers = $root->look_down("class" => "progs")) {
+      foreach my $container (@containers) {
+	if (my @refs = $container->find("a")) {
+	  debug(2, "Source telvis.fi found " . scalar(@refs) . " channels");
+	  foreach my $ref (@refs) {
+	    my $href = $ref->attr("href");
+	    my $name = $ref->as_text();
+
+	    if (defined($href) && length($name) &&
+		(my($id) = ($href =~ m,vw=channel&ch=([^&]+)&,))) {
+	      debug(3, "channel '$name' ($id)");
+	      $channels{"${id}.telvis.fi"} = "fi $name";
+	    }
+	  }
+	}
+      }
+    }
+
+    # Done with the HTML tree
+    $root->delete();
+
+  } else {
+    return;
+  }
+
   debug(2, "Source telvis.fi parsed " . scalar(keys %channels) . " channels");
   return(\%channels);
 }
