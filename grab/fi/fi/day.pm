@@ -27,6 +27,7 @@ sub _new {
 	      month => $month,
 	      year  => $year,
 	      ymd   => sprintf("%04d%02d%02d", $year, $month, $day),
+	      dmy   => sprintf("%02d.%02d.%04d", $day, $month, $year),
 	     };
 
   return(bless($self, $class));
@@ -34,6 +35,7 @@ sub _new {
 
 # instance methods
 sub day   { $_[0]->{day}   };
+sub dmy   { $_[0]->{dmy}   };
 sub month { $_[0]->{month} };
 sub year  { $_[0]->{year}  };
 sub ymd   { $_[0]->{ymd}   };

@@ -23,7 +23,7 @@ our %EXPORT_TAGS = (
 
 # Perl core modules
 use Carp;
-use Encode qw(decode_utf8);
+use Encode qw(decode);
 use POSIX qw(tzset);
 use Time::Local qw(timelocal);
 
@@ -55,19 +55,19 @@ use XMLTV::Get_nice;
 }
 
 # Fetch URL as UTF8 encoded string
-sub fetchRaw($) {
-  my($url) = @_;
+sub fetchRaw($;$) {
+  my($url, $encoding) = @_;
   debug(2, "Fetching URL '$url'");
-  my $content = eval { decode_utf8(get_nice($url)) };
+  my $content = eval { decode($encoding || "utf8", get_nice($url)) };
   croak "fetchRaw(): $@" if $@;
   debug(5, $content);
   return($content);
 }
 
 # Fetch URL as parsed HTML::TreeBuilder
-sub fetchTree($) {
-  my($url) = @_;
-  my $content = fetchRaw($url);
+sub fetchTree($;$) {
+  my($url, $encoding) = @_;
+  my $content = fetchRaw($url, $encoding);
   my $tree = HTML::TreeBuilder->new();
   local $SIG{__WARN__} = sub { carp("fetchTree(): $_[0]") };
   $tree->parse($content) or croak("fetchTree() parse failure for '$url'");
