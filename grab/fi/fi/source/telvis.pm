@@ -132,8 +132,15 @@ sub grab {
     $root->delete();
 
     # Convert list to program objects
+    #
+    # First entry always starts on $today -> don't use $yesterday
+    # Last entries always end on $tomorrow
+    #
+    # Unfortunately the last entry of $today is not the first entry of
+    # $tomorrow. That means that the last entry will always be missing as we
+    # don't have a stop time for it :-(
     return(convertProgrammeList($opaque, $id, "fi",
-				$yesterday, $today, $tomorrow));
+				undef, $today, $tomorrow));
   }
 
   return;
