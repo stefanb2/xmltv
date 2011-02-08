@@ -13,6 +13,10 @@ package fi::source::tvnyt;
 use strict;
 use warnings;
 
+BEGIN {
+  our $ENABLED = 1;
+}
+
 use Carp;
 use HTML::Entities qw(decode_entities);
 use JSON;

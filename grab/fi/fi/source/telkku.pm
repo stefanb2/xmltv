@@ -13,6 +13,10 @@ package fi::source::telkku;
 use strict;
 use warnings;
 
+BEGIN {
+  our $ENABLED = 1;
+}
+
 # Import from internal modules
 fi::common->import();
 fi::programmeStartOnly->import();

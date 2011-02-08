@@ -58,12 +58,23 @@ END_OF_MERGE_TEXT
 	next if 1../^\# INSERT FROM HERE /;
 	next if /^__END__/..0; # right side always false -> cut to the end
 	print $ofh $_;
+
+	# Don't insert the code if source module has been disabled
+	print($ofh <<END_OF_DISABLED_TEXT), last
+}
+
+# THIS DATA SOURCE HAS BEEN DISABLED!
+
+1;
+END_OF_DISABLED_TEXT
+	  if /^\s*our\s+\$ENABLED\s*=\s*0;/;
+
       }
       close($sfh);
       print $ofh "\n###############################################################################\n";
     }
 
-  # insert marker for source modules
+  # delete marker for code
   } elsif (/^\# CUT CODE START/../^\# CUT CODE END/) {
 
   # insert version string

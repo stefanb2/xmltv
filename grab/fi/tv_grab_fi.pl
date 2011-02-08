@@ -37,6 +37,7 @@ BEGIN {
   @sources = map { s/::$//; $_ }
     map { "fi::source::" . $_ }
     sort
+    grep { ${ $::{'fi::'}->{'source::'}->{$_}->{ENABLED} } }
     keys %{ $::{'fi::'}->{'source::'} };
   die "$0: couldn't find any source modules?" unless @sources;
 }
