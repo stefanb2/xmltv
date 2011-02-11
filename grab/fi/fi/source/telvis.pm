@@ -81,8 +81,6 @@ sub grab {
   my $root = fetchTree("http://www.telvis.fi/lite/?vw=channel&ch=${channel}&dy=" . $today->dmy(),
 		       "iso-8859-1");
   if ($root) {
-    my %channels;
-
     #
     # Each programme can be found in a separate <tr> node under a <div> node
     #
