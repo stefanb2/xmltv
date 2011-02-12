@@ -83,8 +83,55 @@ sub grab {
   return unless my($channel, $page) = ($id =~ /^(\d+)\.([^.]+)\.mtv3\.fi$/);
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://www.mtv3.fi/tvopas/${page}.shtml/$today");
+  my $root = fetchTree("http://www.mtv3.fi/tvopas/${page}.shtml/$today",
+		       "iso-8859-1");
   if ($root) {
+    #
+    # Programmes for a channel can be found in a separate <td> node
+    #
+    # <table ... class="ohjelmisto" id="ohjelmisto">
+    #  <tr id="tvopas0400">
+    #  <td ... class="kanava1">
+    #   <div class="ohjelma uutiset"><span class="aika">04:00</span>
+    #    <a class="nimi" href="http://www.mtv3.fi/tvopas/ohjelma.shtml/yle1/20110212/1/uutisikkuna">Uutisikkuna</a>
+    #    <div class="clearall"></div>
+    #    <div class="seloste">
+    #     <div class="tvsel_aika">12.02.2011 klo 04:00-08:00</div>
+    #     <div class="tvsel_sarjateksti"></div>
+    #    </div>
+    #   </div>
+    #   ...
+    #  </td>
+    #
+    if (my $container = $root->look_down("class" => "ohjelmisto")) {
+      if (my @cells = $container->look_down("_tag"  => "td",
+					    "class" => qr/^kanava${channel}$/)) {
+	foreach my $cell (@cells) {
+	  if (my @programmes = $cell->look_down("class" => qr/^ohjelma/)) {
+	    foreach my $programme (@programmes) {
+	      my $title = $programme->look_down("class" => "nimi");
+	      my $time  = $programme->look_down("class" => "tvsel_aika");
+	      if ($title && $time &&
+		  (my($start, $end) = ($time->as_text() =~ /(\d{2}:\d{2})-(\d{2}:\d{2})$/))) {
+		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
+		my $episode = $programme->look_down("class" => "tvsel_jaksonimi");
+
+		$title = $title->as_text();
+		if ($episode) {
+		  ($episode = $episode->as_text()) =~ s/\.\s+$//;
+		  undef $episode if ($episode eq $title);
+		}
+		print STDERR "$start -> $end : $title\n";
+		print STDERR "Episode: $episode\n"
+		  if defined $episode;
+		print STDERR $desc->as_text(), "\n"
+		  if $desc;
+	      }
+	    }
+	  }
+	}
+      }
+    }
 
     # Done with the HTML tree
     $root->delete();
