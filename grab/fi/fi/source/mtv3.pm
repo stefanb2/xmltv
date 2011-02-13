@@ -75,6 +75,13 @@ sub channels {
   return(\%channels);
 }
 
+# Parse time and convert to seconds since midnight
+sub _toEpoch($$) {
+  my($day, $time) = @_;
+  my($hour, $minute) = ($time =~ /^(\d{2}):(\d{2})$/);
+  return(timeToEpoch($day, $hour, $minute));
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow) = @_;
@@ -86,6 +93,8 @@ sub grab {
   my $root = fetchTree("http://www.mtv3.fi/tvopas/${page}.shtml/$today",
 		       "iso-8859-1");
   if ($root) {
+    my @objects;
+
     #
     # Programmes for a channel can be found in a separate <td> node
     #
@@ -103,7 +112,16 @@ sub grab {
     #   ...
     #  </td>
     #
+    # First entry is always at $today.
+    #
+    # Each page contains the programmes for multiple channels. If you use the
+    # grabber for more than one channel from the same channel package then it
+    # is *HIGHLY* recommended to call the grabber with the --cache option to
+    # reduce network traffic!
+    #
     if (my $container = $root->look_down("class" => "ohjelmisto")) {
+      my $day = $today;
+
       if (my @cells = $container->look_down("_tag"  => "td",
 					    "class" => qr/^kanava${channel}$/)) {
 	foreach my $cell (@cells) {
@@ -111,21 +129,35 @@ sub grab {
 	    foreach my $programme (@programmes) {
 	      my $title = $programme->look_down("class" => "nimi");
 	      my $time  = $programme->look_down("class" => "tvsel_aika");
-	      if ($title && $time &&
-		  (my($start, $end) = ($time->as_text() =~ /(\d{2}:\d{2})-(\d{2}:\d{2})$/))) {
-		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
-		my $episode = $programme->look_down("class" => "tvsel_jaksonimi");
 
+	      if ($title && $time &&
+		  (my ($start, $end) =
+		   ($time->as_text() =~ /(\d{2}:\d{2})-(\d{2}:\d{2})$/))) {
 		$title = $title->as_text();
-		if ($episode) {
-		  ($episode = $episode->as_text()) =~ s/\.\s+$//;
-		  undef $episode if ($episode eq $title);
+
+		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
+		$desc    = $desc->as_text() if $desc;
+
+		#my $episode = $programme->look_down("class" => "tvsel_jaksonimi");
+		#if ($episode) {
+		#  ($episode = $episode->as_text()) =~ s/\.\s+$//;
+		#  undef $episode if ($episode eq $title);
+		#}
+
+		$start   = _toEpoch($day, $start);
+		my $stop = _toEpoch($day, $end);
+		if ($stop < $start) {
+		  $day  = $tomorrow;
+		  $stop = _toEpoch($day, $end);
 		}
-		print STDERR "$start -> $end : $title\n";
-		print STDERR "Episode: $episode\n"
-		  if defined $episode;
-		print STDERR $desc->as_text(), "\n"
-		  if $desc;
+
+		debug(3, "List entry ${channel}.${page} ($start -> $stop) $title");
+		debug(4, $desc) if defined $desc;
+
+		# Create program object
+		my $object = fi::programme->new($id, "fi", $title, $start, $stop);
+		$object->description($desc);
+		push(@objects, $object);
 	      }
 	    }
 	  }
@@ -135,6 +167,11 @@ sub grab {
 
     # Done with the HTML tree
     $root->delete();
+
+    # Fix overlapping programmes
+    fi::programme->fixOverlaps(\@objects);
+
+    return(\@objects);
   }
 
   return;
