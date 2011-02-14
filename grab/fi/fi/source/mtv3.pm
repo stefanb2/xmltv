@@ -135,6 +135,8 @@ sub grab {
 		   ($time->as_text() =~ /(\d{2}:\d{2})-(\d{2}:\d{2})$/))) {
 		$title = $title->as_text();
 
+		my($category) = ($programme->attr("class") =~ /^ohjelma\s+(.+)/);
+
 		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
 		$desc    = $desc->as_text() if $desc;
 
@@ -156,6 +158,7 @@ sub grab {
 
 		# Create program object
 		my $object = fi::programme->new($id, "fi", $title, $start, $stop);
+		$object->category($category);
 		$object->description($desc);
 		push(@objects, $object);
 	      }
