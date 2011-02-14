@@ -140,12 +140,6 @@ sub grab {
 		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
 		$desc    = $desc->as_text() if $desc;
 
-		#my $episode = $programme->look_down("class" => "tvsel_jaksonimi");
-		#if ($episode) {
-		#  ($episode = $episode->as_text()) =~ s/\.\s+$//;
-		#  undef $episode if ($episode eq $title);
-		#}
-
 		$start   = _toEpoch($day, $start);
 		my $stop = _toEpoch($day, $end);
 		if ($stop < $start) {
@@ -160,6 +154,24 @@ sub grab {
 		my $object = fi::programme->new($id, "fi", $title, $start, $stop);
 		$object->category($category);
 		$object->description($desc);
+
+		# Handle optional episode titles
+		if (my @episodes = $programme->look_down("class" => "tvsel_jaksonimi")) {
+
+		  # First episode title is in finnish, second is in english
+		  foreach my $language (qw(fi en)) {
+		    last unless my $episode = shift(@episodes);
+
+		    # Strip trailing period or parenthesis
+		    ($episode = $episode->as_text()) =~ s/\.\s*$//;
+		    $episode = $1 if ($episode =~ /^\s*\(\s*(.+)\s*\)\s*$/);
+
+		    # Set episode title if it is NOT the same as the title
+		    $object->episode($episode, $language)
+		      unless $episode eq $title;
+		  }
+		}
+
 		push(@objects, $object);
 	      }
 	    }

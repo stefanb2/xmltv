@@ -48,13 +48,21 @@ sub category {
   my($self, $category) = @_;
   _trim($category);
   $self->{category} = $category
-    if defined($category) && (length($category) > 0);
+    if defined($category) && length($category);
 }
 sub description {
   my($self, $description) = @_;
   _trim($description);
   $self->{description} = $description
-    if defined($description) && (length($description) > 0);
+    if defined($description) && length($description);
+}
+sub episode {
+  my($self, $episode, $language) = @_;
+  _trim($episode);
+  if (defined($episode) && length($episode)) {
+    $episode =~ s/\.$//;
+    push(@{ $self->{episode} }, [$episode, $language]);
+  }
 }
 
 sub language { $_[0]->{language} }
@@ -89,7 +97,7 @@ sub dump {
   my $title       = $self->{title};
   my $category    = $self->{category};
   my $description = $self->{description};
-  my $subtitle;
+  my $subtitle    = $self->{episode};
 
   #
   # Programme post-processing
@@ -102,8 +110,16 @@ sub dump {
       last;
     }
   }
+
   #
-  # Check 1: title contains episode name
+  # Check 1: object already contains episode
+  #
+  my($left, $right);
+  if (defined($subtitle)) {
+    # nothing to be done
+  }
+  #
+  # Check 2: title contains episode name
   #
   # If title contains a colon (:), check to see if the string on the left-hand
   # side of the colon has been defined as a series in the configuration file.
@@ -121,14 +137,13 @@ sub dump {
   #   title:     Prisma
   #   sub-title: Totuus tappajadinosauruksista
   #
-  my($left, $right);
-  if ((($left, $right) = ($title =~ /([^:]+):\s*(.*)/)) &&
-      (exists $series_title{$left})) {
+  elsif ((($left, $right) = ($title =~ /([^:]+):\s*(.*)/)) &&
+	 (exists $series_title{$left})) {
     debug(3, "XMLTV series title '$left' episode '$right'");
     ($title, $subtitle) = ($left, $right);
   }
   #
-  # Check 2: description contains episode name
+  # Check 3: description contains episode name
   #
   # Check if the program has a description. If so, also check if the title
   # of the program has been defined as a series in the configuration. If it
@@ -162,12 +177,15 @@ sub dump {
 	       stop    => _epoch_to_xmltv_time($self->{stop}),
 	       title   => [[$title, $language]],
 	      );
-  debug(3, "XMLTV programme '$xmltv{channel}' '$xmltv{start} -> $xmltv{stop}' '$self->{title}'");
+  debug(3, "XMLTV programme '$xmltv{channel}' '$xmltv{start} -> $xmltv{stop}' '$title'");
 
   # XMLTV programme descriptor (optional parts)
   if (defined($subtitle)) {
-    $xmltv{'sub-title'} = [[$subtitle, $language]];
-    debug(3, "XMLTV programme episode: $subtitle");
+    $subtitle = [[$subtitle, $language]]
+      unless ref($subtitle);
+    $xmltv{'sub-title'} = $subtitle;
+    debug(3, "XMLTV programme episode ($_->[1]): $_->[0]")
+      foreach (@{ $xmltv{'sub-title'} });
   }
   if (defined($category) && length($category)) {
     $xmltv{category} = [[$category, $language]];
