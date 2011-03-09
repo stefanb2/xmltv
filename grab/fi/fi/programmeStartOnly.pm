@@ -64,13 +64,41 @@ sub convertProgrammeList($$$$$$) {
 
     # Start of next program might be on the next day
     my $next_start = $next->{start};
-    $date          = shift(@dates)
-      if $current_start > $next_start;
+    if ($current_start > $next_start) {
 
-    # Sanity check
-    unless ($date) {
-      message("WARNING: corrupted data for $id on $today: two date changes detected. Ignoring data!");
-      return([]);
+      #
+      # Sanity check: try to detect fake day changes caused by broken data
+      #
+      # Incorrect date change example:
+      #
+      #   07:00 Voittovisa
+      #   07:50 Ostoskanava
+      #   07:20 F1 Ennakkolähetys       <-- INCORRECT DAY CHANGE
+      #   07:50 Dino, pikku dinosaurus
+      #   08:15 Superpahisten liiga
+      #
+      #   -> 07:50 (=  470) - 07:20 (=  440) =   30 minutes < 2 hours
+      #
+      # Correct date change example
+      #
+      #   22:35 Irene Huss: Tulitanssi
+      #   00:30 Formula 1: Extra
+      #
+      #   -> 22:35 (= 1355) - 00:30 (=   30) = 1325 minutes > 2 hours
+      #
+      # I grabbed the 2 hour limit out of thin air...
+      #
+      if ($current_start - $next_start > 2 * 60) {
+	$date = shift(@dates);
+
+	# Sanity check
+	unless ($date) {
+	  message("WARNING: corrupted data for $id on $today: two date changes detected. Ignoring data!");
+	  return([]);
+	}
+      } else {
+	message("WARNING: corrupted data for $id on $today: fake date change detected. Ignoring.");
+      }
     }
 
     my $next_epoch = timeToEpoch($date, $next->{hour}, $next->{minute});
