@@ -201,8 +201,7 @@ sub grab {
 	    debug(4, $desc);
 
 	    # Add programme
-	    appendProgramme($opaque, $hour, $minute, $title, $category, $desc,
-			    undef);
+	    appendProgramme($opaque, $hour, $minute, $title, $category, $desc);
 	  }
 	}
       }
@@ -210,7 +209,7 @@ sub grab {
       # Add dummy entry to define stop time for last entry
       # Check for special case "24:00"
       appendProgramme($opaque, $last_hour == 24 ? 0 : $last_hour,
-		      $last_minute, "", undef, undef, undef)
+		      $last_minute, "", undef, undef)
 	if defined $last_hour;
     }
 

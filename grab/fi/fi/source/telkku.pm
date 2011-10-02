@@ -103,24 +103,21 @@ sub grab {
 	  my $date = $list_entry->look_down("class", "programDate");
 	  my $desc = $list_entry->look_down("class", "programDescription");
 	  if ($date && $desc) {
-	    my $link = $date->find("a");
-	    if ($link) {
+	    my $href = $date->find("a");
+	    if ($href) {
+
 	      # Extract texts from HTML elements. Entities are already decoded.
-	      $date = $link->as_text();
+	      $date = $href->as_text();
 	      $desc = $desc->as_text();
 
 	      # Use "." to match &nbsp; character (it's not included in \s?)
 	      if (my($hour, $minute, , $title) =
 		  $date =~ /^(\d{2}):(\d{2}).(.+)/) {
-		my $href = $link->attr("href");
-
 		debug(3, "List entry $channel ($hour:$minute) $title");
 		debug(4, $desc);
-		debug(4, $href) if defined $href;
 
 		# Only record entry if title isn't empty
-		appendProgramme($opaque, $hour, $minute, $title, undef, $desc,
-				$href)
+		appendProgramme($opaque, $hour, $minute, $title, undef, $desc)
 		  if length($title) > 0;
 	      }
 	    }
