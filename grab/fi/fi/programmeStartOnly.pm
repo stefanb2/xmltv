@@ -22,12 +22,13 @@ fi::common->import();
 sub startProgrammeList() { return([]) }
 
 sub appendProgramme($$$$$$$) {
-  my($programmes, $hour, $minute, $title, $category, $description) = @_;
+  my($programmes, $hour, $minute, $title, $category, $description, $id) = @_;
 
   push(@{ $programmes }, {
 			  category    => $category,
 			  description => $description,
 			  hour        => $hour,
+			  id          => $id,
 			  minute      => $minute,
 			  # minutes since midnight
 			  start       => $hour * 60 + $minute,
@@ -109,6 +110,7 @@ sub convertProgrammeList($$$$$$) {
 				    $current_epoch, $next_epoch);
     $object->category($current->{category});
     $object->description($current->{description});
+    $object->id($current->{id});
     push(@objects, $object);
 
     # Move to next program

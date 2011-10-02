@@ -64,6 +64,13 @@ sub episode {
     push(@{ $self->{episode} }, [$episode, $language]);
   }
 }
+sub id {
+  my($self, $id) = @_;
+  _trim($id);
+  $self->{id} = $id
+    if defined($id) && length($id);
+  return($self->{id});
+}
 
 sub language { $_[0]->{language} }
 
