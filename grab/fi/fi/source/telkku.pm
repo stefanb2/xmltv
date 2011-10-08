@@ -181,7 +181,7 @@ sub grab {
 		  $date =~ /^(\d{2}):(\d{2}).(.+)/) {
 		my $href     = $link->attr("href");
 		my $category = (defined($href) && exists($movie_ids->{$href})) ?
-		    "elokuva" : undef;
+		    "elokuvat" : undef;
 
 		debug(3, "List entry $channel ($hour:$minute) $title");
 		debug(4, $desc);
