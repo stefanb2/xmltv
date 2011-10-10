@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: telvis.pm,v 2.01 2011/08/06 00:06:31 stefanb2 Exp $
+# VERSION: $Id: telvis.pm,v 2.02 2011/10/10 16:38:57 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::telvis;
