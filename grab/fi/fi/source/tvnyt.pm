@@ -42,9 +42,9 @@ sub channels {
       # Group list can be found in dropdown
       #
       #  <select id="group_select" ...>
-      #    <option value="tvnyt*today*free_air_fi" selected>...</option>
-      #    <option value="tvnyt*today*sanoma_fi">...</option>
-      #    ...
+      #   <option value="tvnyt*today*free_air_fi" selected>...</option>
+      #   <option value="tvnyt*today*sanoma_fi">...</option>
+      #   ...
       #  </select>
       #
       unless ($added) {
@@ -71,14 +71,14 @@ sub channels {
       # Channel list can be found in table headers
       #
       #  <table class="grid_table" cellspacing="0px">
-      #    <thead>
-      #      <tr>
-      #        <th class="yle_tv1">...</th>
-      #        <th class="yle_tv2">...</th>
-      #        ...
-      #      </tr>
-      #    </thead>
-      #    ...
+      #   <thead>
+      #    <tr>
+      #     <th class="yle_tv1">...</th>
+      #     <th class="yle_tv2">...</th>
+      #     ...
+      #    </tr>
+      #   </thead>
+      #   ...
       #  </table>
       #
       if (my $container = $root->look_down("class" => "grid_table")) {
@@ -110,12 +110,95 @@ sub channels {
   return(\%channels);
 }
 
+# Parse time and convert to seconds since midnight
+sub _toEpoch($$$$) {
+  my($today, $tomorrow, $time, $switch) = @_;
+  my($hour, $minute) = ($time =~ /^(\d{2})(\d{2})$/);
+  return(timeToEpoch($switch ? $tomorrow : $today, $hour, $minute));
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
 
   # Get channel number from XMLTV id
   return unless my($channel, $group) = ($id =~ /^(\w+)\.(\w+)\.tv\.nyt\.fi$/);
+
+  # Fetch & parse HTML
+  my $root = fetchTree("http://tv.nyt.fi/home/tvnyt_grid/?group=$group&date=" .
+		       sprintf("%04d-%02d-%02d",
+			       $today->year(), $today->month(), $today->day()));
+  if ($root) {
+    my @objects;
+
+    #
+    # Programme data is contained inside a table cells with class="<channel>"
+    #
+    #  <td class="yle_tv1">
+    #   <table class="be_list_table">
+    #    <tr class="s1210 e1230"> (start/end time, "+" for tomorrow)
+    #     <td class="be_time">12:10</td>
+    #     <td class="be_entry">
+    #      <span class="thb1916041"></span>
+    #      <span class="flw6390"></span>
+    #      <a href="/programs/show/1916041" class="program_link colorbox tip">
+    #       Hercules... (title)
+    #      </a>
+    #      <span class="tooltip">
+    #       <span class="wl_actions">...</span>
+    #       <span class="wl_synopsis">
+    #        Dokumenttielokuva bulgarialaisen perheen... (long description)
+    #       </span>
+    #      </span>
+    #      <span class="syn">
+    #       Dokumenttielokuva bulgarialaisen... (short description)
+    #      </span>
+    #     </td>
+    #    </tr>
+    #   ...
+    #   </table>
+    #  </td>
+    #
+    if (my @cells = $root->look_down("class" => $channel,
+				     "_tag"  => "td")) {
+      foreach my $cell (@cells) {
+	foreach my $row ($cell->find("tr")) {
+	  my $start_stop = $row->attr("class");
+	  my $entry      = $row->look_down("class" => "be_entry");
+          if (defined($start_stop) && $entry &&
+	      (my($start, $stomorrow, $end, $etomorrow) =
+	       ($start_stop =~ /^s(\d{4})(\+?)\s+e(\d{4})(\+?)$/))) {
+	    my $title = $entry->look_down("class" => qr/program_link/);
+            my $desc  = $entry->look_down("class" => "wl_synopsis");
+	    if ($title) {
+	      $title = $title->as_text();
+              if (length($title)) {
+		$start = _toEpoch($today, $tomorrow, $start, $stomorrow);
+		$end   = _toEpoch($today, $tomorrow, $end,   $etomorrow);
+		$desc  = $desc->as_text() if $desc;
+
+		debug(3, "List entry ${channel}.${group} ($start -> $end) $title");
+		debug(4, $desc);
+
+		# Create program object
+		my $object = fi::programme->new($id, "fi", $title, $start, $end);
+		$object->description($desc);
+		push(@objects, $object);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    # Done with the HTML tree
+    $root->delete();
+
+    # Fix overlapping programmes
+    fi::programme->fixOverlaps(\@objects);
+
+    return(\@objects);
+  }
 
   return;
 }
