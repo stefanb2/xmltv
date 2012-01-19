@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: tvnyt.pm,v 2.04 2012/01/18 18:41:19 stefanb2 Exp $
+# VERSION: $Id: tvnyt.pm,v 2.05 2012/01/19 14:55:37 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::tvnyt;
