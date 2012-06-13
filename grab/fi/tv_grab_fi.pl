@@ -8,7 +8,7 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
-use constant VERSION => '$Id: tv_grab_fi.pl,v 2.02 2012/02/11 20:31:39 stefanb2 Exp $ ';
+use constant VERSION => '$Id: tv_grab_fi.pl,v 2.03 2012/06/13 09:07:52 knowledgejunkie Exp $ ';
 
 ###############################################################################
 # INSERT: SOURCES
@@ -576,8 +576,6 @@ If the programme title starts with the string C<FROM> then replace this part
 with the string C<TO>. The strings must be enclosed in single quotes (C<'>) or
 double quotes (C<">). The title mapping occurs before the C<series> command
 processing.
-
-=back
 
 =item B<title strip parental level>
 
