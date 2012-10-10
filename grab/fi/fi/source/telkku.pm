@@ -35,7 +35,7 @@ sub channels {
     #
     # Channel list can be found from the left sidebar
     #
-    # <div id="channelList">
+    # <div class="l-wrap l-grid--16" id="channelContainer">
     #   ...
     #   <ul>
     #     <li><a href="http://www.telkku.com/channel/list/8/20101218">4 Sport</a></li>
@@ -46,7 +46,7 @@ sub channels {
     #   </ul>
     # </div>
     #
-    if (my $container = $root->look_down("id" => "channelList")) {
+    if (my $container = $root->look_down("id" => "channelContainer")) {
       if (my @list = $container->find("li")) {
 	debug(2, "Source telkku.com found " . scalar(@list) . " channels");
 	foreach my $list_entry (@list) {
