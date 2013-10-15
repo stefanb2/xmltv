@@ -27,6 +27,30 @@ sub description { 'foxtv.fi' }
 # Grab channel list - only one channel available, no need to fetch anything...
 sub channels { { 'foxtv.fi' => 'fi FOX' } }
 
+# Extract programmes for one day
+sub _programmes($$) {
+  my($table_entries, $wday) = @_;
+  return if ($wday > 6);
+
+  my $entry = $table_entries->[$wday + 1];
+  return unless $entry;
+
+  return($entry->look_down("class" => qr/^itemListings/));
+}
+
+# Extract start time and return (hour, minute) or undef
+sub _start($) {
+  my($programme) = @_;
+
+  my $start = $programme->look_down("rel" => "colorbox");
+  return unless $start;
+
+  $start = $start->find("span");
+  return unless $start;
+
+  return($start->as_text() =~ /^(\d{2}):(\d{2})/);
+}
+
 # Grab one day
 sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
@@ -110,46 +134,52 @@ sub grab {
     #
     if (my $container = $root->look_down("class" => "bloque-slider")) {
       if (my @table_entries = $container->find("td")) {
-	if (my @programmes = $table_entries[$wday + 1]->look_down("class" => qr/^itemListings/)) {
-	  foreach my $programme (@programmes) {
-            my $start   = $programme->look_down("rel" => "colorbox");
-	    my $details = $programme->look_down("class" => "Content");
+	my @programmes_today = _programmes(\@table_entries, $wday);
+	my $first_tomorrow   = _programmes(\@table_entries, $wday + 1);
 
-	    if ($start && $details) {
+	if (@programmes_today) {
+	  foreach my $programme (@programmes_today) {
+	    my($hour, $minute) = _start($programme);
+	    my $details        = $programme->look_down("class" => "Content");
+
+	    if ($hour && $minute && $details) {
 	      my $desc  = $details->look_down("class" => "ShowDescription colLeft");
 	      my $title = $details->find("h4");
-	      $start = $start->find("span");
 
-	      if ($desc && $title && $start) {
-		if (my($hour, $minute) =
-		    $start->as_text() =~ /^(\d{2}):(\d{2})/) {
-		  my($season, $episode_number) = $programme->look_down("class" => "ShowTitle colLeft");
-		  my $episode_name             = $programme->find("p");
+	      if ($desc && $title) {
+		my($season, $episode_number) = $programme->look_down("class" => "ShowTitle colLeft");
+		my $episode_name             = $programme->find("p");
 
-		  $title = $title->as_text();
-		  $desc  = $desc->as_text();
+		$title = $title->as_text();
+		$desc  = $desc->as_text();
 
-		  # Description can be empty or "-"
-		  undef $desc if ($desc eq '') || ($desc eq '-');
+		# Description can be empty or "-"
+		undef $desc if ($desc eq '') || ($desc eq '-');
 
-		  # Season, episode number & episode name (optional)
-		  ($season)         = ($season->as_text() =~ /(\d+)/)
-		    if $season;
-		  ($episode_number) = ($episode_number->as_text() =~ /(\d+)/)
-		    if $episode_number;
-		  ($episode_name)   = ($episode_name->as_text() =~ /^\s*(.+)\s*$/)
-		    if $episode_name;
+		# Season, episode number & episode name (optional)
+		($season)         = ($season->as_text() =~ /(\d+)/)
+		  if $season;
+		($episode_number) = ($episode_number->as_text() =~ /(\d+)/)
+		  if $episode_number;
+		($episode_name)   = ($episode_name->as_text() =~ /^\s*(.+)\s*$/)
+		  if $episode_name;
 
-		  debug(3, "List entry fox ($hour:$minute) $title");
-		  debug(4, $episode_name) if defined $episode_name;
-		  debug(4, $desc)         if defined $desc;
-		  debug(4, sprintf("s%02de%02d", $season, $episode_number))
-		    if (defined($season) && defined($episode_number));
+		debug(3, "List entry fox ($hour:$minute) $title");
+		debug(4, $episode_name) if defined $episode_name;
+		debug(4, $desc)         if defined $desc;
+		debug(4, sprintf("s%02de%02d", $season, $episode_number))
+		  if (defined($season) && defined($episode_number));
 
-		  appendProgramme($opaque, $hour, $minute, $title, undef, $desc);
-		}
+		appendProgramme($opaque, $hour, $minute, $title, undef, $desc);
 	      }
 	    }
+	  }
+
+	  # Get stop time for last entry in the table: first start
+	  if ($first_tomorrow) {
+	    my($hour, $minute) = _start($first_tomorrow);
+	    appendProgramme($opaque, $hour, $minute, "DUMMY", undef, undef)
+	      if ($hour && $minute);
 	  }
 	}
       }
@@ -158,7 +188,16 @@ sub grab {
     # Done with the HTML tree
     $root->delete();
 
-    return(convertProgrammeList($opaque, $id, "fi", $yesterday, $today, $tomorrow));
+    # Convert list to program objects
+    #
+    # First entry always starts on $today -> don't use $yesterday
+    # Last entry always ends on $tomorrow.
+    #
+    # Unfortunately we don't have a stop time for the last entry. We fix this
+    # (see above) by adding the start time of the first entry from tomorrow
+    # as a DUMMY program. This works for Monday to Saturday, but not for
+    # Sunday :-(
+    return(convertProgrammeList($opaque, $id, "fi", undef, $today, $tomorrow));
   }
 
   return;
