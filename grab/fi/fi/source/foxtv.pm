@@ -69,56 +69,85 @@ sub grab {
   if ($root) {
     my $opaque = startProgrammeList();
 
-    if (my $container = $root->look_down("_tag"  => "table",
-					 "class" => "bloque-slider")) {
-      if (my @table_entries = $container->look_down("_tag"  => "td",
-						    "class" => undef)) {
-	if (my @programmes = $table_entries[$wday]->look_down("class" => qr/^itemListings/)) {
-
+    #
+    # All program info is contained in a table column *without* class
+    #
+    #  <table class="bloque-slider">
+    #   <tr>
+    #    <td class="calendarHours">      [Index 0]
+    #    ... one list item per hour ...
+    #    </td>
+    #    <td>                            [Index 1: Monday -> $wday + 1]
+    #      <div class="itemListings halfHour  ">
+    #        <a href=... rel="colorbox">
+    #          ...
+    #          <span>00:55</span>
+    #          ...
+    #        </a>
+    #        <div id="ShowDetailsOverlay" class="ShowDetails ">
+    #          ...
+    #          <div class="Content">
+    #            <h4>Low Winter Sun</h4>
+    #            ...
+    #            <div class="Details colLeft">
+    #              <h5 class="ShowTitle colLeft">Tuotantokausi 1</h5>
+    #              <h5 class="ShowTitle colLeft">
+    #                  Jakso 10
+    #              </h5>
+    #              <p>sunnuntain myöhäisilloissa </p>
+    #              ...
+    #            </div>
+    #            <div class="ShowDescription colLeft">Murhien, petosten, koston ja korruption värittämän modernin draamasarjan päähenkilönä on etsivä Frank Agnew.</div>
+    #            ...
+    #          </div>
+    #        </div>
+    #      </div>
+    #    </td>
+    #    <td>                            [Index 2: Tuesday]
+    #    ...
+    #   </tr>
+    #  </table>
+    #
+    if (my $container = $root->look_down("class" => "bloque-slider")) {
+      if (my @table_entries = $container->find("td")) {
+	if (my @programmes = $table_entries[$wday + 1]->look_down("class" => qr/^itemListings/)) {
 	  foreach my $programme (@programmes) {
-	    my $title = $programme->look_down("_tag" => "h4");
-	    my $time  = $programme->look_down("_tag"  => "span",
-					      "class" => undef);
-	    my $desc  = $programme->look_down("class" => "ShowDescription colLeft");
+            my $start   = $programme->look_down("rel" => "colorbox");
+	    my $details = $programme->look_down("class" => "Content");
 
-	    if ($title && $time && $desc) {
-	      $time  = $time->as_text();
+	    if ($start && $details) {
+	      my $desc  = $details->look_down("class" => "ShowDescription colLeft");
+	      my $title = $details->find("h4");
+	      $start = $start->find("span");
 
-	      if (my($hour, $minute) = $time =~ /^(\d{2}):(\d{2})/) {
-		my($season, $episode_number) = $programme->look_down("_tag" => "h5");
-		my $episode_name             = $programme->look_down("_tag" => "p");
+	      if ($desc && $title && $start) {
+		if (my($hour, $minute) =
+		    $start->as_text() =~ /^(\d{2}):(\d{2})/) {
+		  my($season, $episode_number) = $programme->look_down("class" => "ShowTitle colLeft");
+		  my $episode_name             = $programme->find("p");
 
-		$desc  = $desc->as_text();
-		$title = $title->as_text();
+		  $title = $title->as_text();
+		  $desc  = $desc->as_text();
 
-		# Too short description -> assume empty. Kind of hackish :-(
-		undef $desc if (length($desc) < 3);
+		  # Description can be empty or "-"
+		  undef $desc if ($desc eq '') || ($desc eq '-');
 
-		# Season, episode number & episode name
-		if ($season) {
-		  $season = $season->as_text();
-		  $season =~ s/[^\d]//g;
-		  undef $season if (length($season) == 0);
-		}
-		if ($episode_number) {
-		  $episode_number = $episode_number->as_text();
-		  $episode_number =~ s/[^\d]//g;
-		  undef $episode_number if (length($episode_number) == 0);
-		}
-		if ($episode_name) {
-		  $episode_name = $episode_name->as_text();
-		  $episode_name =~ s/^\s+//;
-		  $episode_name =~ s/\s+$//;
-		  undef $episode_name if (length($episode_name) == 0);
-		}
+		  # Season, episode number & episode name (optional)
+		  ($season)         = ($season->as_text() =~ /(\d+)/)
+		    if $season;
+		  ($episode_number) = ($episode_number->as_text() =~ /(\d+)/)
+		    if $episode_number;
+		  ($episode_name)   = ($episode_name->as_text() =~ /^\s*(.+)\s*$/)
+		    if $episode_name;
 
-		debug(3, "List entry fox ($hour:$minute) $title");
-		debug(4, $episode_name) if defined $episode_name;
-		debug(4, $desc)         if defined $desc;
-		debug(4, sprintf("s%02de%02d", $season, $episode_number))
+		  debug(3, "List entry fox ($hour:$minute) $title");
+		  debug(4, $episode_name) if defined $episode_name;
+		  debug(4, $desc)         if defined $desc;
+		  debug(4, sprintf("s%02de%02d", $season, $episode_number))
 		    if (defined($season) && defined($episode_number));
 
-		appendProgramme($opaque, $hour, $minute, $title, undef, $desc);
+		  appendProgramme($opaque, $hour, $minute, $title, undef, $desc);
+		}
 	      }
 	    }
 	  }
