@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: telkku.pm,v 1.999 yyyy/mm/dd hh:mm:ss xxx Exp $
+# VERSION: $Id: foxtv.pm,v 1.999 yyyy/mm/dd hh:mm:ss xxx Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::foxtv;
