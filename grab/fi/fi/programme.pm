@@ -169,7 +169,7 @@ sub dump {
   #
   # Example:
   #
-  #   config:      series title Batman
+  #   config:      series description Batman
   #   description: Pingviinin paluu. Amerikkalainen animaatiosarja....
   #
   # This will generate a program with
