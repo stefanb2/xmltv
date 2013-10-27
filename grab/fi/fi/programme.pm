@@ -28,9 +28,9 @@ sub _trim {
 sub new {
   my($class, $channel, $language, $title, $start, $stop) = @_;
   _trim($title);
-  croak "${class}::new called without valid title, start or stop"
+  croak "${class}::new called without valid title or start"
     unless defined($channel) && defined($title) && (length($title) > 0) &&
-           defined($start) && defined($stop);
+           defined($start);
 
   my $self = {
 	      channel  => $channel,
@@ -64,8 +64,20 @@ sub episode {
     push(@{ $self->{episode} }, [$episode, $language]);
   }
 }
+sub stop {
+  my($self, $stop) = @_;
+  $self->{stop} = $stop
+    if defined($stop) && length($stop);
+  $stop = $self->{stop};
+  croak "${self}::stop: object without valid stop time"
+    unless defined($stop);
+  return($stop);
+}
 
+# read-only
 sub language { $_[0]->{language} }
+sub start    { $_[0]->{start}    }
+sub title    { $_[0]->{title}    }
 
 # Convert seconds since Epoch to XMLTV time stamp
 #
