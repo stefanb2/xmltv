@@ -201,8 +201,9 @@ sub grab {
 	    debug(4, $desc);
 
 	    # Add programme
-	    my $object = appendProgramme($opaque, $hour, $minute, $title, $desc);
+	    my $object = appendProgramme($opaque, $hour, $minute, $title);
 	    $object->category($category);
+	    $object->description($desc);
 	  }
 	}
       }

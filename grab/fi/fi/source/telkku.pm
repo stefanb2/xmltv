@@ -195,8 +195,9 @@ sub grab {
 
 	      # Only record entry if title isn't empty
 	      if (length($title) > 0) {
-		  my $object = appendProgramme($opaque, $hour, $minute, $title, $desc);
-		  $object->category($category);
+		my $object = appendProgramme($opaque, $hour, $minute, $title);
+		$object->category($category);
+		$object->description($desc);
 	      }
 	    }
 	  }

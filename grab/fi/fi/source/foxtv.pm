@@ -170,7 +170,8 @@ sub grab {
 		debug(4, sprintf("s%02de%02d", $season, $episode_number))
 		  if (defined($season) && defined($episode_number));
 
-		appendProgramme($opaque, $hour, $minute, $title, $desc);
+		my $object = appendProgramme($opaque, $hour, $minute, $title);
+		$object->description($desc);
 	      }
 	    }
 	  }
@@ -178,7 +179,7 @@ sub grab {
 	  # Get stop time for last entry in the table: first start
 	  if ($first_tomorrow) {
 	    my($hour, $minute) = _start($first_tomorrow);
-	    appendProgramme($opaque, $hour, $minute, "DUMMY", undef)
+	    appendProgramme($opaque, $hour, $minute, "DUMMY")
 	      if ($hour && $minute);
 	  }
 	}
