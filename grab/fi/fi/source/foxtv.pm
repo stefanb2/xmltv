@@ -91,7 +91,7 @@ sub grab {
   # Fetch & parse HTML
   my $root = fetchTree($url);
   if ($root) {
-    my $opaque = startProgrammeList();
+    my $opaque = startProgrammeList($id, "fi");
 
     #
     # All program info is contained in a table column *without* class
@@ -197,7 +197,7 @@ sub grab {
     # (see above) by adding the start time of the first entry from tomorrow
     # as a DUMMY program. This works for Monday to Saturday, but not for
     # Sunday :-(
-    return(convertProgrammeList($opaque, $id, "fi", undef, $today, $tomorrow));
+    return(convertProgrammeList($opaque, undef, $today, $tomorrow));
   }
 
   return;

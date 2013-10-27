@@ -166,7 +166,7 @@ sub grab {
     # - the end time in "desc_time" is unfortunately unreliable and leads to
     #   overlapping programme entries. We only use it for the last entry.
     #
-    my $opaque = startProgrammeList();
+    my $opaque = startProgrammeList($id, $code);
     if (my @programmes = $root->look_down("class" => qr/^programme\s+/)) {
       my($last_hour, $last_minute);
 
@@ -218,8 +218,7 @@ sub grab {
 
     # Convert list to program objects
     # First entry always starts $today -> don't use $yesterday
-    return(convertProgrammeList($opaque, $id, $code,
-				undef, $today, $tomorrow));
+    return(convertProgrammeList($opaque, undef, $today, $tomorrow));
   }
 
   return;

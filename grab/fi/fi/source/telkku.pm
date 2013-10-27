@@ -168,7 +168,7 @@ sub grab {
     #   ...
     #  </ul>
     #
-    my $opaque = startProgrammeList();
+    my $opaque = startProgrammeList($id, "fi");
     if (my $container = $root->look_down("class" => "l-stack programList")) {
       if (my @list = $container->find("li")) {
 	foreach my $list_entry (@list) {
@@ -225,8 +225,7 @@ sub grab {
     # The lines in [] don't appear on every page.
     #
     # Convert list to program objects
-    return(convertProgrammeList($opaque, $id, "fi",
-				$yesterday, $today, $tomorrow));
+    return(convertProgrammeList($opaque, $yesterday, $today, $tomorrow));
   }
 
   return;

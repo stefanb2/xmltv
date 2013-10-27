@@ -103,7 +103,7 @@ sub grab {
     #  </table>
     # </div>
     #
-    my $opaque = startProgrammeList();
+    my $opaque = startProgrammeList($id, "fi");
     if (my $container = $root->look_down("class" => "tm")) {
       if (my @rows = $container->find("tr")) {
 	foreach my $row (@rows) {
@@ -141,8 +141,7 @@ sub grab {
     # Unfortunately the last entry of $today is not the first entry of
     # $tomorrow. That means that the last entry will always be missing as we
     # don't have a stop time for it :-(
-    return(convertProgrammeList($opaque, $id, "fi",
-				undef, $today, $tomorrow));
+    return(convertProgrammeList($opaque, undef, $today, $tomorrow));
   }
 
   return;
