@@ -29,12 +29,11 @@ sub startProgrammeList($$) {
 
 }
 
-sub appendProgramme($$$$$$) {
-  my($self, $hour, $minute, $title, $category, $description) = @_;
+sub appendProgramme($$$$$) {
+  my($self, $hour, $minute, $title, $description) = @_;
 
   my $object = fi::programme->new($self->{id}, $self->{language},
 				  $title, $hour * 60 + $minute);
-  $object->category($category);
   $object->description($description);
 
   push($self->{programmes}, $object);
