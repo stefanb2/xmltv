@@ -21,6 +21,9 @@ BEGIN {
 fi::common->import();
 fi::programmeStartOnly->import();
 
+# Cleanup filter regexes
+my $cleanup_match = qr/\s*(?:\d+\.\s+Kausi\.\s+)?(?:Kausi\s+\d+\.\s+)?(?:Osa|Jakso)\s+\d+\.\s*/i;
+
 # Description
 sub description { 'foxtv.fi' }
 
@@ -153,16 +156,32 @@ sub grab {
 		$title = $title->as_text();
 		$desc  = $desc->as_text();
 
-		# Description can be empty or "-"
-		undef $desc if ($desc eq '') || ($desc eq '-');
-
 		# Season, episode number & episode name (optional)
 		($season)         = ($season->as_text() =~ /(\d+)/)
 		  if $season;
 		($episode_number) = ($episode_number->as_text() =~ /(\d+)/)
 		  if $episode_number;
-		($episode_name)   = ($episode_name->as_text() =~ /^\s*(.+)\s*$/)
+		($episode_name)   = ($episode_name->as_text() =~ /^\s*(.+)$/)
 		  if $episode_name;
+
+		# Cleanup some of the most common inconsistencies....
+		$desc =~ s/^$cleanup_match//o
+		  if defined($desc);
+		if (defined($episode_name)) {
+		  $episode_name =~ s/$cleanup_match//o;
+		  $episode_name =~ s/\s+$//;
+		  if (defined($desc)) {
+		    # Strip optional parental guidance to improve following match
+		    my $tmp;
+		    ($tmp = $episode_name) =~ s/\s+\((?:\d+|S)\)$//;
+		    $desc =~ s/^$tmp\.\s+//;
+		  }
+		}
+
+		# Description can be empty or "-"
+		undef $desc if ($desc eq '') || ($desc eq '-');
+		undef $episode_name
+		  if defined($episode_name) && ($episode_name eq '');
 
 		debug(3, "List entry fox ($hour:$minute) $title");
 		debug(4, $episode_name) if defined $episode_name;
