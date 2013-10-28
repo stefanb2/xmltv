@@ -76,6 +76,15 @@ sub season_episode {
     }
   }
 }
+sub start {
+  my($self, $start) = @_;
+  $self->{start} = $start
+    if defined($start) && length($start);
+  $start = $self->{start};
+  croak "${self}::start: object without valid start time"
+    unless defined($start);
+  return($start);
+}
 sub stop {
   my($self, $stop) = @_;
   $self->{stop} = $stop
@@ -88,7 +97,6 @@ sub stop {
 
 # read-only
 sub language { $_[0]->{language} }
-sub start    { $_[0]->{start}    }
 sub title    { $_[0]->{title}    }
 
 # Convert seconds since Epoch to XMLTV time stamp

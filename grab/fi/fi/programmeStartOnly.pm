@@ -32,6 +32,7 @@ sub startProgrammeList($$) {
 sub appendProgramme($$$$) {
   my($self, $hour, $minute, $title) = @_;
 
+  # NOTE: start time in minutes from midnight -> must be converted to epoch
   my $object = fi::programme->new($self->{id}, $self->{language},
 				  $title, $hour * 60 + $minute);
 
@@ -113,10 +114,13 @@ sub convertProgrammeList($$$$) {
 				 int($next_start / 60),
 				 $next_start % 60);
 
-    # Set stop time on object
     my $title = $current->title();
     debug(3, "Programme $id ($current_epoch -> $next_epoch) $title");
+
+    # overwrite start & stop times with epoch: see appendProgramme()
+    $current->start($current_epoch);
     $current->stop($next_epoch);
+
     push(@objects, $current);
 
     # Move to next program
