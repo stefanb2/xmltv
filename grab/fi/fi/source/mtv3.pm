@@ -142,7 +142,8 @@ sub grab {
 
 		$start   = _toEpoch($day, $start);
 		my $stop = _toEpoch($day, $end);
-		if ($stop < $start) {
+		# Sanity check: prevent day change on the first entry
+		if (@objects && ($stop < $start)) {
 		  $day  = $tomorrow;
 		  $stop = _toEpoch($day, $end);
 		}
