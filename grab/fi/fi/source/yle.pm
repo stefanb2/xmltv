@@ -211,7 +211,7 @@ sub grab {
       # Add dummy entry to define stop time for last entry
       # Check for special case "24:00"
       appendProgramme($opaque, $last_hour == 24 ? 0 : $last_hour,
-		      $last_minute, "", undef)
+		      $last_minute, "DUMMY")
 	if defined $last_hour;
     }
 
