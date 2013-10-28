@@ -64,6 +64,18 @@ sub episode {
     push(@{ $self->{episode} }, [$episode, $language]);
   }
 }
+sub season_episode {
+  my($self, $season, $episode) = @_;
+  # only accept a pair of valid, positive integers
+  if (defined($season) && defined($episode)) {
+    $season  = int($season);
+    $episode = int($episode);
+    if (($season  > 0) && ($episode > 0)) {
+      $self->{season}         = $season;
+      $self->{episode_number} = $episode;
+    }
+  }
+}
 sub stop {
   my($self, $stop) = @_;
   $self->{stop} = $stop
@@ -110,6 +122,8 @@ sub dump {
   my $title       = $self->{title};
   my $category    = $self->{category};
   my $description = $self->{description};
+  my $episode     = $self->{episode_number};
+  my $season      = $self->{season};
   my $subtitle    = $self->{episode};
 
   #
@@ -211,6 +225,10 @@ sub dump {
   if (defined($description) && length($description)) {
     $xmltv{desc} = [[$description, $language]];
     debug(4, "XMLTV programme description: $description");
+  }
+  if (defined($season) && defined($episode)) {
+    $xmltv{'episode-num'} =  [[ ($season - 1) . '.' . ($episode - 1) . '.', 'xmltv_ns' ]];
+    debug(4, "XMLTV programme season/episode: $season/$episode");
   }
 
   $writer->write_programme(\%xmltv);
