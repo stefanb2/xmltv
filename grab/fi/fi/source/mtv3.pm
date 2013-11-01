@@ -44,17 +44,22 @@ sub _get_channels($$) {
     #  </table>
     #
     if (my $container = $root->look_down("class" => "ohjelmisto")) {
-      if (my @options = $container->find("th")) {
-        my $count;
+      if ((my @headers = $container->find("th")) &&
+	  (my @entries = $container->find("td"))) {
 
-	debug(2, "Source mtv3.fi found " . scalar(@options) . " channels in group ${page}");
-	foreach my $option (@options) {
-	  my $name = $option->as_text();
-	  ++$count;
+        if (@entries >= @headers) {
+	  my $count = 0;
 
-	  if (length($name)) {
-	    debug(3, "channel '$name' (${count}.${page})");
-	    $channels->{"${count}.${page}.mtv3.fi"} = "fi $name";
+	  debug(2, "Source mtv3.fi found " . scalar(@headers) . " channels in group ${page}");
+	  foreach my $option (@headers) {
+	    my $name  = $option->as_text();
+	    my $class = $entries[$count++]->attr("class");
+
+	    if (length($name) && defined($class) &&
+		(my($index) = ($class =~ /^kanava(\d+)$/))) {
+	      debug(3, "channel '$name' (${index}.${page})");
+	      $channels->{"${index}.${page}.mtv3.fi"} = "fi $name";
+	    }
 	  }
 	}
       }
