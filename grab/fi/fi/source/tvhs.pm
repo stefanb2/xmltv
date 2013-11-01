@@ -1,18 +1,21 @@
 # -*- mode: perl; coding: utf-8 -*- ###########################################
 #
-# tv_grab_fi: source specific grabber code for http://tv.nyt.fi
+# tv_grab_fi: source specific grabber code for http://tv.hs.fi
 #
 ###############################################################################
 #
 # Setup
 #
-# VERSION: $Id: tvnyt.pm,v 2.05 2012/01/19 14:55:37 stefanb2 Exp $
+# VERSION: $Id: tvhs.pm,v 2.05 2012/01/19 14:55:37 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
-package fi::source::tvnyt;
+package fi::source::tvhs;
 use strict;
 use warnings;
 
+#
+# NOTE: this data source was earlier known as http://tv.tvnyt.fi
+#
 BEGIN {
   our $ENABLED = 1;
 }
@@ -23,7 +26,7 @@ use Carp;
 fi::common->import();
 
 # Description
-sub description { 'tv.nyt.fi' }
+sub description { 'tv.hs.fi' }
 
 # Grab channel list
 sub channels {
@@ -50,7 +53,7 @@ sub channels {
       unless ($added) {
 	if (my $container = $root->look_down("id" => "group_select")) {
 	  if (my @options = $container->find("option")) {
-	    debug(2, "Source tv.nyt.fi found " . scalar(@options) . " groups");
+	    debug(2, "Source tv.hs.fi found " . scalar(@options) . " groups");
             foreach my $option (@options) {
 	      unless ($option->attr("selected")) {
 		my $value = $option->attr("value");
@@ -84,7 +87,7 @@ sub channels {
       if (my $container = $root->look_down("class" => "grid_table")) {
 	my $head = $container->find("thead");
 	if ($head && (my @headers = $head->find("th"))) {
-	  debug(2, "Source tv.nyt.fi found " . scalar(@headers) . " channels in group '$group'");
+	  debug(2, "Source tv.hs.fi found " . scalar(@headers) . " channels in group '$group'");
 	  foreach my $header (@headers) {
 	      if (my $image = $header->find("img")) {
 		my $name = $image->attr("alt");
@@ -95,7 +98,7 @@ sub channels {
 		  debug(3, "channel '$name' ($channel_id)");
 
 		  # Underscore is not a valid XMLTV channel ID character
-		  ($channel_id = "${channel_id}.${group}.tv.nyt.fi") =~ s/_/-/g;
+		  ($channel_id = "${channel_id}.${group}.tv.hs.fi") =~ s/_/-/g;
 
 		  $channels{$channel_id} = "fi $name";
 		}
@@ -110,7 +113,7 @@ sub channels {
 
   }
 
-  debug(2, "Source tv.nyt.fi parsed " . scalar(keys %channels) . " channels");
+  debug(2, "Source tv.hs.fi parsed " . scalar(keys %channels) . " channels");
   return(\%channels);
 }
 
