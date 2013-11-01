@@ -129,14 +129,14 @@ sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
 
   # Get channel number from XMLTV id
-  return unless my($channel, $group) = ($id =~ /^(\w+)\.(\w+)\.tv\.nyt\.fi$/);
+  return unless my($channel, $group) = ($id =~ /^([-\w]+)\.([-\w]+)\.tv\.hs\.fi$/);
 
   # Replace Dash with Underscore for URL
   $channel =~ s/-/_/g;
   $group   =~ s/-/_/g;
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://tv.nyt.fi/grid?service=tvnyt&grid_type=list&layout=false&group=$group&date=" .
+  my $root = fetchTree("http://tv.hs.fi/home/grid?group=${group}&date=" .
 		       sprintf("%04d-%02d-%02d",
 			       $today->year(), $today->month(), $today->day()));
   if ($root) {
@@ -189,7 +189,7 @@ sub grab {
 		$desc  = $desc->as_text() if $desc;
 
 		debug(3, "List entry ${channel}.${group} ($start -> $end) $title");
-		debug(4, $desc);
+		debug(4, $desc) if $desc;
 
 		# Create program object
 		my $object = fi::programme->new($id, "fi", $title, $start, $end);
