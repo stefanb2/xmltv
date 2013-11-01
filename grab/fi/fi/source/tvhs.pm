@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: tvhs.pm,v 2.05 2012/01/19 14:55:37 stefanb2 Exp $
+# VERSION: $Id: tvhs.pm,v 2.06 2013/11/01 22:34:23 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::tvhs;
