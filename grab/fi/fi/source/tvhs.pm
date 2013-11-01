@@ -38,15 +38,15 @@ sub channels {
   while (defined(my $group = shift(@groups))) {
 
     # Fetch & parse HTML
-    my $root = fetchTree("http://tv.nyt.fi/grid?service=tvnyt&grid_type=list&layout=false&group=$group");
+    my $root = fetchTree("http://tv.hs.fi/home/grid?group=${group}");
     if ($root) {
 
       #
       # Group list can be found in dropdown
       #
       #  <select id="group_select" ...>
-      #   <option value="tvnyt*today*free_air_fi*list" selected>...</option>
-      #   <option value="tvnyt*today*sanoma_fi*list">...</option>
+      #   <option value="today*free_air_fi*list" selected>...</option>
+      #   <option value="today*sanoma_fi*list">...</option>
       #   ...
       #  </select>
       #
@@ -59,7 +59,7 @@ sub channels {
 		my $value = $option->attr("value");
 
 		if (defined($value) &&
-		    (my($tag) = ($value =~ /^tvnyt\*today\*(\w+)\*/))) {
+		    (my($tag) = ($value =~ /^today\*(\w+)\*/))) {
 		  debug(3, "group '$tag'");
 		  push(@groups, $tag);
 		}
