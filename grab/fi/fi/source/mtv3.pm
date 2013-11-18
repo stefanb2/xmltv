@@ -23,53 +23,6 @@ fi::common->import();
 # Description
 sub description { 'mtv3.fi' }
 
-# Grab channels from one group page
-sub _get_channels($$) {
-  my($channels, $page) = @_;
-
-  # Fetch & parse HTML
-  my $root = fetchTree("http://www.mtv3.fi/tvopas/${page}.shtml", "iso-8859-1");
-  if ($root) {
-
-    #
-    # Channel name & order can be found from the headers in this table:
-    #
-    #  <table cellspacing="0" cellpadding="0" border="0" class="ohjelmisto" id="ohjelmisto">
-    #   <tr>
-    #    <th width="17%"><div title="MTV3 Leffa" class="channel-logo channel-mtv3-leffa">MTV3 Leffa</div></th>
-    #    <th width="17%"><div title="C More First" class="channel-logo channel-cmore-first">C More First</div></th>
-    #    ...
-    #   </tr>
-    #   ...
-    #  </table>
-    #
-    if (my $container = $root->look_down("class" => "ohjelmisto")) {
-      if ((my @headers = $container->find("th")) &&
-	  (my @entries = $container->find("td"))) {
-
-        if (@entries >= @headers) {
-	  my $count = 0;
-
-	  debug(2, "Source mtv3.fi found " . scalar(@headers) . " channels in group ${page}");
-	  foreach my $option (@headers) {
-	    my $name  = $option->as_text();
-	    my $class = $entries[$count++]->attr("class");
-
-	    if (length($name) && defined($class) &&
-		(my($index) = ($class =~ /^kanava(\d+)$/))) {
-	      debug(3, "channel '$name' (${index}.${page})");
-	      $channels->{"${index}.${page}.mtv3.fi"} = "fi $name";
-	    }
-	  }
-	}
-      }
-    }
-
-    # Done with the HTML tree
-    $root->delete();
-  }
-}
-
 # Grab channel list
 sub channels {
   my %channels;
@@ -79,33 +32,32 @@ sub channels {
   if ($root) {
 
     #
-    # Channel list can be found from this dropdown:
+    # Channel list can be found from the headers of this table:
     #
-    # <select onchange="window.open(this.options[this.selectedIndex].value,'_self')">
-    #  <option value="#">Valitse kanava</option>
-    #  <option value="/tvopas/index.shtml">YLE1</option>
-    #  ...
-    #  <option value="/tvopas/muutkanavat.shtml">KinoTV</option>
-    #  <option value="/tvopas/muutkanavat.shtml">Digiviihde</option>
-    # </select>
+    #  <table class="ohjelmakartta" cellspacing="0" cellpadding="0" border="0">
+    #   <thead>
+    #    <tr class="logot">
+    #     <th class="logo logo-old yle1"><span>yle1</span></th>
+    #     <th class="logo logo-old yle2"><span>yle2</span></th>
+    #     <th class="logo mtv3"><span>mtv3</span></th>
+    #     ...
+    #     <th class="logo logo-old jim"><span>jim</span></th>
+    #    </thead>
+    #    ...
+    #  </table>
     #
-    # Unfortunately they are not in the correct order
-    #
-    if (my $container = $root->look_down("onchange" => qr/^window.open/)) {
-      if (my @options = $container->find("option")) {
-	my %pages;
+    if (my $container = $root->look_down("class" => "ohjelmakartta")) {
+      if (my @headers = $container->find("th")) {
 
-	debug(2, "Source mtv3.fi found " . scalar(@options) . " channels");
-	foreach my $option (@options) {
-	  my $id = $option->attr("value");
+	debug(2, "Source mtv3.fi found " . scalar(@headers) . " channels");
 
-	  if (defined($id) &&
-	      (my($page) = ($id =~ m,^/tvopas/(\w+)\.shtml$,))) {
-	    $pages{$page}++;
-	  }
+	foreach my $header (@headers) {
+	  my $id = $header->as_text();
+
+	  # Unfortunately the HTML code does not show the real channel name
+	  $channels{"${id}.mtv3.fi"} = "fi $id"
+	    if (defined($id) && length($id));
 	}
-	debug(2, "Source mtv3.fi found " . scalar(keys %pages) . " groups");
-	_get_channels(\%channels, $_) foreach (keys %pages);
       }
     }
 
