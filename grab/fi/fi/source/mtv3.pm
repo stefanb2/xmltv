@@ -85,10 +85,13 @@ sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
 
   # Get channel number from XMLTV id
-  return unless my($channel, $page) = ($id =~ /^(\d+)\.([^.]+)\.mtv3\.fi$/);
+  return unless my($channel) = ($id =~ /^([^.]+)\.mtv3\.fi$/);
+
+  # Replace Dash with Underscore for node search
+  $channel =~ s/-/_/g;
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://www.mtv3.fi/tvopas/${page}.shtml/$today",
+  my $root = fetchTree("http://www.mtv3.fi/tvopas/index.shtml/$today",
 		       "iso-8859-1");
   if ($root) {
     my @objects;
@@ -96,19 +99,39 @@ sub grab {
     #
     # Programmes for a channel can be found in a separate <td> node
     #
-    # <table ... class="ohjelmisto" id="ohjelmisto">
-    #  <tr id="tvopas0400">
-    #  <td ... class="kanava1">
-    #   <div class="ohjelma uutiset"><span class="aika">04:00</span>
-    #    <a class="nimi" href="http://www.mtv3.fi/tvopas/ohjelma.shtml/yle1/20110212/1/uutisikkuna">Uutisikkuna</a>
-    #    <div class="clearall"></div>
-    #    <div class="seloste">
-    #     <div class="tvsel_aika">12.02.2011 klo 04:00-08:00</div>
-    #     <div class="tvsel_sarjateksti"></div>
-    #    </div>
-    #   </div>
-    #   ...
-    #  </td>
+    #  <table class="ohjelmakartta" ...>
+    #   <tbody>
+    #    ...
+    #    <td class="yle1">
+    #     <ul>
+    #      <li class="program">
+    #       <a href="#" name="mtv3etusivu_tvopas_ohjelmakartta">
+    #        <span class="starttime">04:00</span>
+    #        <span class="name">Uutisikkuna</span>
+    #        <span class="popup">
+    #         <span class="top">
+    #          <span class="name">Uutisikkuna</span>
+    #          <span class="times">
+    #           <span class="date">20.11.2013 </span>
+    #            klo 04:00 - 05:55
+    #          </span>
+    #          <span class="logo"></span>
+    #         </span>
+    #         <span class="description"></span>
+    #         <span class="bottom">
+    #          <span class="episodename"><b>Jakso:</b> Keskiviikko</span>
+    #          <span class="duration"><b>Kesto:</b> 01:55</span>
+    #         </span>
+    #         ...
+    #        </span>
+    #       </a>
+    #      </li>
+    #      ...
+    #     </ul>
+    #    </td>
+    #    ...
+    #   </tbody>
+    #  </table>
     #
     # First entry is always at $today.
     #
@@ -117,25 +140,28 @@ sub grab {
     # is *HIGHLY* recommended to call the grabber with the --cache option to
     # reduce network traffic!
     #
-    if (my $container = $root->look_down("class" => "ohjelmisto")) {
+    if (my $container = $root->look_down("class" => "ohjelmakartta")) {
       my $day = $today;
 
       if (my @cells = $container->look_down("_tag"  => "td",
-					    "class" => qr/^kanava${channel}$/)) {
+					    "class" => $channel)) {
+
 	foreach my $cell (@cells) {
-	  if (my @programmes = $cell->look_down("class" => qr/^ohjelma/)) {
+	  if (my @programmes = $cell->find("li")) {
 	    foreach my $programme (@programmes) {
-	      my $title = $programme->look_down("class" => qr/^nimi/);
-	      my $time  = $programme->look_down("class" => "tvsel_aika");
+	      my $title = $programme->look_down("class" => "name");
+	      my $time  = $programme->look_down("class" => "times");
 
 	      if ($title && $time &&
 		  (my ($start, $end) =
-		   ($time->as_text() =~ /(\d{2}:\d{2})-(\d{2}:\d{2})$/))) {
+		   ($time->as_text() =~ /klo\s+(\d{2}:\d{2})\s+-\s+(\d{2}:\d{2})/))) {
 		$title = $title->as_text();
 
-		my($category) = ($programme->attr("class") =~ /^ohjelma\s+(.+)/);
+		# Strip "hd" and "live" from category
+		my($category) = ($programme->attr("class") =~ /^program\s+(.+)/);
+		$category =~ s/(?:hd|live)// if defined($category);
 
-		my $desc = $programme->look_down("class" => "tvsel_kuvaus");
+		my $desc = $programme->look_down("class" => "description");
 		$desc    = $desc->as_text() if $desc;
 
 		$start   = _toEpoch($day, $start);
@@ -146,7 +172,7 @@ sub grab {
 		  $stop = _toEpoch($day, $end);
 		}
 
-		debug(3, "List entry ${channel}.${page} ($start -> $stop) $title");
+		debug(3, "List entry ${channel} ($start -> $stop) $title");
 		debug(4, $desc) if defined $desc;
 
 		# Create program object
@@ -155,20 +181,14 @@ sub grab {
 		$object->description($desc);
 
 		# Handle optional episode titles
-		if (my @episodes = $programme->look_down("class" => "tvsel_jaksonimi")) {
+		if (my $episode = $programme->look_down("class" => "episodename")) {
 
-		  # First episode title is in finnish, second is in english
-		  foreach my $language (qw(fi en)) {
-		    last unless my $episode = shift(@episodes);
+	          # Strip starting "Jakso:" text
+		  ($episode = $episode->as_text()) =~ s/^Jakso:\s+//;
 
-		    # Strip trailing period or parenthesis
-		    ($episode = $episode->as_text()) =~ s/\.\s*$//;
-		    $episode = $1 if ($episode =~ /^\s*\(\s*(.+)\s*\)\s*$/);
-
-		    # Set episode title if it is NOT the same as the title
-		    $object->episode($episode, $language)
-		      unless $episode eq $title;
-		  }
+		  # Set episode title if it is NOT the same as the title
+		  $object->episode($episode, "fi")
+		    unless $episode eq $title;
 		}
 
 		push(@objects, $object);
