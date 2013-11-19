@@ -52,12 +52,14 @@ sub channels {
 	debug(2, "Source mtv3.fi found " . scalar(@headers) . " channels");
 
 	foreach my $header (@headers) {
-	  my $id = $header->as_text();
+	  my $name = $header->as_text();
 
 	  # Unfortunately the HTML code does not show the real channel name
-	  if (defined($id) && length($id)) {
-	    debug(3, "channel '$id' ($id)");
-	    $channels{"${id}.mtv3.fi"} = "fi $id";
+	  if (defined($name) && length($name)) {
+	    # Underscore is not a valid XMLTV channel ID character
+	    (my $id = $name) =~ s/_/-/g;
+	    debug(3, "channel '$id' ($name)");
+	    $channels{"${id}.mtv3.fi"} = "fi $name";
 	  }
 	}
       }
