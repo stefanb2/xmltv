@@ -55,8 +55,10 @@ sub channels {
 	  my $id = $header->as_text();
 
 	  # Unfortunately the HTML code does not show the real channel name
-	  $channels{"${id}.mtv3.fi"} = "fi $id"
-	    if (defined($id) && length($id));
+	  if (defined($id) && length($id)) {
+	    debug(3, "channel '$id' ($id)");
+	    $channels{"${id}.mtv3.fi"} = "fi $id";
+	  }
 	}
       }
     }
