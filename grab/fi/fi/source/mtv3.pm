@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: mtv3.pm,v 2.03 2013/11/01 22:55:13 stefanb2 Exp $
+# VERSION: $Id: mtv3.pm,v 2.04 2013/11/20 07:58:21 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::mtv3;
