@@ -24,46 +24,36 @@ fi::programmeStartOnly->import();
 # Description
 sub description { 'yle.fi' }
 
-# yle.fi offers program guides in multiple languages
-#                language URL attribute
-#                |      XMLTV language code
-#                |      |
-my %languages = (
-		 fi => "fi",
-		 se => "sv",
-		);
-
 # Grab channel list
 sub channels {
   my %channels;
 
-  # For each language
-  while (my($language, $code) = each %languages) {
+  # yle.fi offers program guides in multiple languages
+  foreach my $code ("fi", "sv") {
 
     # Fetch & parse HTML
-    my $root = fetchTree("http://ohjelmaopas.yle.fi/?lang=$language");
+    my $root = fetchTree("http://ohjelmaopas.yle.fi/tv/lang/$code?previousUrl=/tv/opas");
     if ($root) {
 
       #
-      # Channel list can be found from this dropdown:
+      # Channel list can be found from this list:
       #
-      # <select name="week" id="viikko_dropdown" class="dropdown">
-      #   <option value="">Valitse kanava</option>
-      #   <option value="tv1">YLE TV1</option>
+      # <ul class="channel-lists ...">
+      #   <li><h1 id="yle-tv1">Yle TV1...</h1>...</li>
+      #   <li><h1 id="yle-tv2">Yle TV2...</h1>...</li>
       #   ...
-      #   <option value="tvf">TV Finland (CET)</option>
-      # </select>
+      # </ul>
       #
-      if (my $container = $root->look_down("id" => "viikko_dropdown")) {
-	if (my @options = $container->find("option")) {
-	  debug(2, "Source ${language}.yle.fi found " . scalar(@options) . " channels");
-	  foreach my $option (@options) {
-	    my $id   = $option->attr("value");
-	    my $name = $option->as_text();
+      if (my $container = $root->look_down("class" => qr/^channel-lists\s+/)) {
+	if (my @headers = $container->find("h1")) {
+	  debug(2, "Source ${code}.yle.fi found " . scalar(@headers) . " channels");
+	  foreach my $header (@headers) {
+	    my $id   = $header->attr("id");
+	    my $name = $header->as_text();
 
 	    if (defined($id) && length($id) && length($name)) {
 	      debug(3, "channel '$name' ($id)");
-	      $channels{"${id}.${language}.yle.fi"} = "$code $name";
+	      $channels{"${id}.${code}.yle.fi"} = "$code $name";
 	    }
 	  }
 	}
@@ -122,19 +112,15 @@ sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
 
   # Get channel number from XMLTV id
-  return unless my($channel, $language) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
-
-  # Select language
-  return unless exists $languages{$language};
-  my $code = $languages{$language};
+  return unless my($channel, $code) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://ohjelmaopas.yle.fi/?lang=$language&groups=$channel&d=$today");
+  my $root = fetchTree("http://ohjelmaopas.yle.fi/tv/lang/$code?previousUrl=/tv/opas&t=" . $today->ymdd());
   if ($root) {
-    my $map = $category_map->{$language};
+    my $map = $category_map->{$code};
 
     # Only parse category list once
-    $map = _parseCategories($root, $language) unless defined $map;
+    $map = _parseCategories($root, $code) unless defined $map;
 
     #
     # Each programme can be found in a separate <div> node
