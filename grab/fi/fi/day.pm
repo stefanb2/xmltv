@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: day.pm,v 2.00 2011/03/10 21:20:11 stefanb2 Exp $
+# VERSION: $Id: day.pm,v 2.01 2014/06/14 18:18:36 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::day;
