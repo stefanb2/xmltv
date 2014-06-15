@@ -135,7 +135,8 @@ sub grab {
 		my $link     = $title->find("a");
 		my $category = $title->look_down("class" => "label movie") ? "elokuvat" : undef;
 
-		if ($start && $end && $link) {
+		# NOTE: entries with same start and end time are invalid
+		if ($start && $end && $link && ($start != $end)) {
 
 		  $title = $link->as_text();
 		  $title =~ s/^\s+//;
