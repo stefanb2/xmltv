@@ -8,7 +8,7 @@ use 5.008; # we process Unicode texts
 use strict;
 use warnings;
 
-use constant VERSION => '$Id: tv_grab_fi.pl,v 2.04 2013/11/01 22:55:13 stefanb2 Exp $ ';
+use constant VERSION => '$Id: tv_grab_fi.pl,v 2.05 2014/06/21 16:36:15 stefanb2 Exp $ ';
 
 ###############################################################################
 # INSERT: SOURCES
