@@ -602,7 +602,7 @@ L<xmltv>.
 
 =over
 
-=item Stefan Becker C<stefan dot becker at nokia dot com>
+=item Stefan Becker C<chemobejk at gmail dot com>
 
 =item Ville Ahonen C<ville dot ahonen at iki dot fi>
 
