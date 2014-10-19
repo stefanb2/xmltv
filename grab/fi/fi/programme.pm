@@ -219,7 +219,7 @@ sub dump {
 	 (($left, $special, $right) = ($description =~ /^\s*([^.!?]+[.!?])([.!?]+\s+)?\s*(.*)/))) {
     # Check for "Kausi <season>. Jakso <episode>/<# of episodes>. <sub-title>...."
     if (my($desc_season, $desc_episode, $remainder) =
-	($description =~ m,^Kausi\s+(\d+)\.\s+Jakso\s+(\d+)/\d+\.\s+(.*)$,)) {
+	($description =~ m,^Kausi\s+(\d+)\.\s+Jakso\s+(\d+)(?:/\d+)?\.\s+(.*)$,)) {
 	$season  = $desc_season;
 	$episode = $desc_episode;
 
