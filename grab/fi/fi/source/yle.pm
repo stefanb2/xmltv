@@ -25,15 +25,20 @@ fi::programmeStartOnly->import();
 # Description
 sub description { 'yle.fi' }
 
+my %languages = (
+    "fi" => "ohjelmaopas",
+    "sv" => "programguide",
+);
+
 # Grab channel list
 sub channels {
   my %channels;
 
   # yle.fi offers program guides in multiple languages
-  foreach my $code ("fi", "sv") {
+  foreach my $code (sort keys %languages) {
 
     # Fetch & parse HTML
-    my $root = fetchTree("http://ohjelmaopas.yle.fi/lang/$code?path=tv/opas");
+    my $root = fetchTree("http://$languages{$code}.yle.fi/tv/opas");
     if ($root) {
 
       #
