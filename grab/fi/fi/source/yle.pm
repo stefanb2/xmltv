@@ -85,7 +85,7 @@ sub grab {
   return unless my($channel, $code) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
 
   # Fetch & parse HTML (do not ignore HTML5 <time>)
-	my $root = fetchTree("http://ohjelmaopas.yle.fi/lang/$code?path=tv/opas&t=" . $today->ymdd(),
+  my $root = fetchTree("http://$languages{$code}.yle.fi/tv/opas?t=" . $today->ymdd(),
 		       undef, undef, 1);
   if ($root) {
     my @objects;
