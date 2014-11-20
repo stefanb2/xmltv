@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: yle.pm,v 2.04 2014/06/15 17:27:26 stefanb2 Exp $
+# VERSION: $Id: yle.pm,v 2.05 2014/11/14 14:54:46 bilbo_uk Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::yle;
@@ -33,7 +33,7 @@ sub channels {
   foreach my $code ("fi", "sv") {
 
     # Fetch & parse HTML
-    my $root = fetchTree("http://ohjelmaopas.yle.fi/tv/lang/$code?previousUrl=/tv/opas");
+    my $root = fetchTree("http://ohjelmaopas.yle.fi/lang/$code?path=tv/opas");
     if ($root) {
 
       #
@@ -80,7 +80,7 @@ sub grab {
   return unless my($channel, $code) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
 
   # Fetch & parse HTML (do not ignore HTML5 <time>)
-  my $root = fetchTree("http://ohjelmaopas.yle.fi/tv/lang/$code?previousUrl=/tv/opas&t=" . $today->ymdd(),
+	my $root = fetchTree("http://ohjelmaopas.yle.fi/lang/$code?path=tv/opas&t=" . $today->ymdd(),
 		       undef, undef, 1);
   if ($root) {
     my @objects;
