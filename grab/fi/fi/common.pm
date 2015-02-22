@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: common.pm,v 2.02 2014/06/14 18:18:36 stefanb2 Exp $
+# VERSION: $Id: common.pm,v 2.04 2014/12/05 19:35:46 bilbo_uk Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::common;
@@ -75,7 +75,7 @@ sub fetchRaw($;$$) {
 
       unless ($@) {
 	  # Everything is OK
-	  $content = decode($encoding || "utf8", $content);
+	  $content = decode($encoding || "utf8", $content);    # Note: 'utf8' is NOT the same as 'utf-8' !
 	  last RETRY;
       } elsif (($@ =~ /error: 500 Timeout/) && $retries--) {
 	  # Let's try this one more time
