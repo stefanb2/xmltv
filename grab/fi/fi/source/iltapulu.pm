@@ -32,86 +32,44 @@ sub description { 'iltapulu.fi' }
 # Grab channel list
 sub channels {
   my %channels;
-  my @groups = ( "free_air_fi" );
-  my $added;
 
-  # Next group
-  while (defined(my $group = shift(@groups))) {
+  # Fetch & parse HTML
+  my $root = fetchTree("http://www.iltapulu.fi/?&all=1");
+  if ($root) {
+    #
+    # Channel list can be found in table rows
+    #
+    #  <table class="channel-row"">
+    #   <tbody>
+    #    <tr>
+    #     <td class="channel-name">...</td>
+    #     <td class="channel-name">...</td>
+    #     ...
+    #    </tr>
+    #   </tbody>
+    #   ...
+    #  </table>
+    #
+    if (my @tables = $root->look_down("class" => "channel-row")) {
+      foreach my $table (@tables) {
+	my @cells = $table->look_down("class" => "channel-name");
+	foreach my $cell (@cells) {
+	  if (my $image = $cell->find("img")) {
+	    my $name = $image->attr("alt");
+	    $name =~ s/\s+tv-ohjelmat$//;
 
-    # Fetch & parse HTML
-    my $root = fetchTree("http://tv.hs.fi/home/grid?group=${group}");
-    if ($root) {
-
-      #
-      # Group list can be found in dropdown
-      #
-      #  <select id="group_select" ...>
-      #   <option value="today*free_air_fi*list" selected>...</option>
-      #   <option value="today*sanoma_fi*list">...</option>
-      #   ...
-      #  </select>
-      #
-      unless ($added) {
-	if (my $container = $root->look_down("id" => "group_select")) {
-	  if (my @options = $container->find("option")) {
-	    debug(2, "Source iltapulu.fi found " . scalar(@options) . " groups");
-            foreach my $option (@options) {
-	      unless ($option->attr("selected")) {
-		my $value = $option->attr("value");
-
-		if (defined($value) &&
-		    (my($tag) = ($value =~ /^today\*(\w+)\*/))) {
-		  debug(3, "group '$tag'");
-		  push(@groups, $tag);
-		}
-	      }
+	    if (defined($name) && length($name)) {
+	      my $channel_id = (scalar(keys %channels) + 1) . ".iltapulu.fi";
+	      debug(3, "channel '$name' ($channel_id)");
+	      $channels{$channel_id} = "fi $name";
 	    }
 	  }
 	}
-	$added++;
       }
-
-      #
-      # Channel list can be found in table headers
-      #
-      #  <table class="grid_table" cellspacing="0px">
-      #   <thead>
-      #    <tr>
-      #     <th class="yle_tv1">...</th>
-      #     <th class="yle_tv2">...</th>
-      #     ...
-      #    </tr>
-      #   </thead>
-      #   ...
-      #  </table>
-      #
-      if (my $container = $root->look_down("class" => "grid_table")) {
-	my $head = $container->find("thead");
-	if ($head && (my @headers = $head->find("th"))) {
-	  debug(2, "Source iltapulu.fi found " . scalar(@headers) . " channels in group '$group'");
-	  foreach my $header (@headers) {
-	      if (my $image = $header->find("img")) {
-		my $name = $image->attr("alt");
-		my $channel_id = $header->attr("class");
-
-		if (defined($channel_id) && length($channel_id) &&
-		    defined($name)       && length($name)) {
-		  debug(3, "channel '$name' ($channel_id)");
-
-		  # Underscore is not a valid XMLTV channel ID character
-		  ($channel_id = "${channel_id}.${group}.iltapulu.fi") =~ s/_/-/g;
-
-		  $channels{$channel_id} = "fi $name";
-		}
-	      }
-	    }
-	}
-      }
-
-      # Done with the HTML tree
-      $root->delete();
     }
 
+    # Done with the HTML tree
+    $root->delete();
   }
 
   debug(2, "Source iltapulu.fi parsed " . scalar(keys %channels) . " channels");
