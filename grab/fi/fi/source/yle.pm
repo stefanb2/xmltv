@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: yle.pm,v 2.08 2015/02/22 14:10:47 stefanb2 Exp $
+# VERSION: $Id: yle.pm,v 2.09 2015/02/22 15:18:39 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::yle;
@@ -133,8 +133,8 @@ sub grab {
 	      my $desc  = $programme->look_down("class", "program-desc");
 
 	      if ($start && $end && $title && $desc) {
-		$start = UnixDate($start->attr("datetime"),qw/%s/);
-		$end   = UnixDate($end->attr("datetime"),qw/%s/);
+		$start = UnixDate($start->attr("datetime"), "%s");
+		$end   = UnixDate($end->attr("datetime"),   "%s");
 
 		my $link     = $title->find("a");
 		my $category = $title->look_down("class" => "label movie") ? "elokuvat" : undef;
