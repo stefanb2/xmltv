@@ -108,7 +108,7 @@ sub grab {
     #        <table>
     #         <tr>
     #          <td class="time">00.15</td>
-    #          <td class="title">
+    #          <td class="title[ movie]">
     #           <a class="program-open..." ... title="... description ...">
     #            Uutisikkuna
     #           </a>
@@ -160,13 +160,16 @@ sub grab {
 		my $title = $link->as_text();
 
 		if (length($title)) {
-		  my $desc = $link->attr("title");
+		  my $desc     = $link->attr("title");
+		  my $category = ($link->parent()->attr("class") =~ /movie/) ? "elokuvat" : undef;
 
 		  debug(3, "List entry ${id} ($start -> $end) $title");
-		  debug(4, $desc) if $desc;
+		  debug(4, $desc)     if $desc;
+		  debug(4, $category) if defined $category;
 
 		  # Create program object
 		  my $object = fi::programme->new($id, "fi", $title, $start, $end);
+		  $object->category($category);
 		  $object->description($desc);
 		  push(@objects, $object);
 		}
