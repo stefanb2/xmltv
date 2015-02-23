@@ -231,7 +231,7 @@ sub dump {
 	($left, $special, $right) = ($remainder =~ $match_description);
 
     # Check for "Kausi <season>, <episode>/<# of episodes>. <sub-title>...."
-    } elsif (my($desc_season, $desc_episode, $remainder) =
+    } elsif (($desc_season, $desc_episode, $remainder) =
 	($description =~ m!^Kausi\s+(\d+),\s+(\d+)(?:/\d+)?\.\s*(.*)$!)) {
 	$season  = $desc_season;
 	$episode = $desc_episode;
