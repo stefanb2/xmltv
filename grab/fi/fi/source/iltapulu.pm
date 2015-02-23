@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: iltapulu.pm,v 2.07 2014/06/14 18:18:36 stefanb2 Exp $
+# VERSION: $Id: iltapulu.pm,v 2.08 2015/02/23 18:09:21 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::iltapulu;
