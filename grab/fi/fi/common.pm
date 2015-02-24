@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: common.pm,v 2.05 2015/02/22 14:10:47 stefanb2 Exp $
+# VERSION: $Id: common.pm,v 2.06 2015/02/24 18:41:32 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::common;
