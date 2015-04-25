@@ -76,8 +76,10 @@ sub grab {
   # Replace Dash with Space for node search
   $channel =~ s/-/ /g;
 
-  # Fetch JSON as raw file
-  my $content = fetchRaw("http://www.mtv.fi/asset/data/kanavaopas/tvopas-${today}-lite.json");
+  # Fetch JSON as raw file. Unfortunately for days without data this fails
+  # instead of returning an empty string, so we need to set the "nofail" flag.
+  my $content = fetchRaw("http://www.mtv.fi/asset/data/kanavaopas/tvopas-${today}-lite.json",
+			 undef, 1);
   if (length($content)) {
      my $parser = JSON->new();
      my $data   = eval {
