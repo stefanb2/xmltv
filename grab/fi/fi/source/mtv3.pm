@@ -13,6 +13,10 @@ package fi::source::mtv3;
 use strict;
 use warnings;
 
+use Carp;
+use HTML::Entities qw(decode_entities);
+use JSON;
+
 BEGIN {
   our $ENABLED = 1;
 }
@@ -28,42 +32,24 @@ sub channels {
   my %channels;
 
   # Fetch & parse HTML
-  my $root = fetchTree("http://www.mtv3.fi/tvopas/", "iso-8859-1");
+  my $root = fetchTree("http://www.mtv.fi/tvopas#desktop");
   if ($root) {
 
     #
-    # Channel list can be found from the headers of this table:
+    # Haven't figured out yet how to grab the channel list...
     #
-    #  <table class="ohjelmakartta" cellspacing="0" cellpadding="0" border="0">
-    #   <thead>
-    #    <tr class="logot">
-    #     <th class="logo logo-old yle1"><span>yle1</span></th>
-    #     <th class="logo logo-old yle2"><span>yle2</span></th>
-    #     <th class="logo mtv3"><span>mtv3</span></th>
-    #     ...
-    #     <th class="logo logo-old jim"><span>jim</span></th>
-    #    </thead>
-    #    ...
-    #  </table>
-    #
-    if (my $container = $root->look_down("class" => "ohjelmakartta")) {
-      if (my @headers = $container->find("th")) {
-
-	debug(2, "Source mtv3.fi found " . scalar(@headers) . " channels");
-
-	foreach my $header (@headers) {
-	  my $name = $header->as_text();
-
-	  # Unfortunately the HTML code does not show the real channel name
-	  if (defined($name) && length($name)) {
-	    # Underscore is not a valid XMLTV channel ID character
-	    (my $id = $name) =~ s/_/-/g;
-	    debug(3, "channel '$id' ($name)");
-	    $channels{"${id}.mtv3.fi"} = "fi $name";
-	  }
-	}
-      }
-    }
+    # Return hard-coded list for now.
+    %channels = (
+	"Ava.mtv3.fi"         => "fi Ava",
+	"MTV3.mtv3.fi"        => "fi MTV3",
+	"MTV-Fakta.mtv3.fi"   => "fi MTV Fakta",
+	"MTV-Juniori.mtv3.fi" => "fi MTV Juniori",
+	"MTV-Leffa.mtv3.fi"   => "fi MTV Leffa",
+	"MTV-Max.mtv3.fi"     => "fi MTV Max",
+	"MTV-Sport-1.mtv3.fi" => "fi MTV Sport 1",
+	"MTV-Sport-2.mtv3.fi" => "fi MTV Sport 2",
+	"Sub.mtv3.fi"         => "fi Sub",
+    );
 
     # Done with the HTML tree
     $root->delete();
@@ -87,125 +73,74 @@ sub grab {
   # Get channel number from XMLTV id
   return unless my($channel) = ($id =~ /^([^.]+)\.mtv3\.fi$/);
 
-  # Replace Dash with Underscore for node search
-  $channel =~ s/-/_/g;
+  # Replace Dash with Space for node search
+  $channel =~ s/-/ /g;
 
-  # Fetch & parse HTML
-  my $root = fetchTree("http://www.mtv3.fi/tvopas/index.shtml/$today",
-		       "iso-8859-1");
-  if ($root) {
-    my @objects;
+  # Fetch JSON as raw file
+  my $content = fetchRaw("http://www.mtv.fi/asset/data/kanavaopas/tvopas-${today}-lite.json");
+  if (length($content)) {
+     my $parser = JSON->new();
+     my $data   = eval {
+	 $parser->decode($content)
+     };
+     croak "JSON parse error: $@" if $@;
+     undef $parser;
 
-    #
-    # Programmes for a channel can be found in a separate <td> node
-    #
-    #  <table class="ohjelmakartta" ...>
-    #   <tbody>
-    #    ...
-    #    <td class="yle1">
-    #     <ul>
-    #      <li class="program">
-    #       <a href="#" name="mtv3etusivu_tvopas_ohjelmakartta">
-    #        <span class="starttime">04:00</span>
-    #        <span class="name">Uutisikkuna</span>
-    #        <span class="popup">
-    #         <span class="top">
-    #          <span class="name">Uutisikkuna</span>
-    #          <span class="times">
-    #           <span class="date">20.11.2013 </span>
-    #            klo 04:00 - 05:55
-    #          </span>
-    #          <span class="logo"></span>
-    #         </span>
-    #         <span class="description"></span>
-    #         <span class="bottom">
-    #          <span class="episodename"><b>Jakso:</b> Keskiviikko</span>
-    #          <span class="duration"><b>Kesto:</b> 01:55</span>
-    #         </span>
-    #         ...
-    #        </span>
-    #       </a>
-    #      </li>
-    #      ...
-    #     </ul>
-    #    </td>
-    #    ...
-    #   </tbody>
-    #  </table>
-    #
-    # First entry is always at $today.
-    #
-    # Each page contains the programmes for multiple channels. If you use the
-    # grabber for more than one channel from the same channel package then it
-    # is *HIGHLY* recommended to call the grabber with the --cache option to
-    # reduce network traffic!
-    #
-    if (my $container = $root->look_down("class" => "ohjelmakartta")) {
-      my $day = $today;
+     #
+     # Program information is encoded in JSON:
+     #
+     # [
+     #   {
+     #     "age_rating": "S",
+     #     "channel": "MTV Juniori",
+     #     "end_time": 1430019000,
+     #     "episode_age_rating": "S",
+     #     "flag_hd": false,
+     #     "flag_katsomo": true,
+     #     "flag_live": false,
+     #     "flag_subtitling": false,
+     #     "name": "Hopla",
+     #     "progkey": "2684446132812",
+     #     "program_type": null,          (elokuvat, urheilu, uutiset, ???)
+     #     "start_time": 1430017200
+     #    },
+     #
+     # Verify top-level of data structure
+     if ((ref($data) eq "ARRAY")     &&
+	 (@{$data} > 0)              &&
+	 (ref($data->[0]) eq "HASH")) {
+       my @objects;
 
-      if (my @cells = $container->look_down("_tag"  => "td",
-					    "class" => $channel)) {
+       foreach my $entry (grep { $_->{channel} eq $channel }
+			  @{ $data }) {
+	 my $start = $entry->{start_time};
+	 my $stop  = $entry->{end_time};
+	 my $title = decode_entities($entry->{name});
+	 #my $desc  = decode_entities($entry->{desc}); ???
 
-	foreach my $cell (@cells) {
-	  if (my @programmes = $cell->find("li")) {
-	    foreach my $programme (@programmes) {
-	      my $title = $programme->look_down("class" => "name");
-	      my $time  = $programme->look_down("class" => "times");
+	 # Sanity check
+	 if (($start > 0) &&
+	     ($stop  > 0) &&
+	     length($title)) {
+	   my $category = $entry->{program_type};
 
-	      if ($title && $time &&
-		  (my ($start, $end) =
-		   ($time->as_text() =~ /klo\s+(\d{2}:\d{2})\s+-\s+(\d{2}:\d{2})/))) {
-		$title = $title->as_text();
+	   debug(3, "List entry $channel ($start -> $stop) $title");
+	   #debug(4, $desc);
+	   debug(4, $category) if defined $category;
 
-		# Strip "hd" and "live" from category
-		my($category) = ($programme->attr("class") =~ /^program\s+(.+)/);
-		$category =~ s/(?:hd|live)// if defined($category);
+	   # Create program object
+	   my $object = fi::programme->new($id, "fi", $title, $start, $stop);
+	   #$object->description($desc);
+	   $object->category($category);
+	   push(@objects, $object);
+	 }
+       }
 
-		my $desc = $programme->look_down("class" => "description");
-		$desc    = $desc->as_text() if $desc;
+       # Fix overlapping programmes
+       fi::programme->fixOverlaps(\@objects);
 
-		$start   = _toEpoch($day, $start);
-		my $stop = _toEpoch($day, $end);
-		# Sanity check: prevent day change on the first entry
-		if (@objects && ($stop < $start)) {
-		  $day  = $tomorrow;
-		  $stop = _toEpoch($day, $end);
-		}
-
-		debug(3, "List entry ${channel} ($start -> $stop) $title");
-		debug(4, $desc) if defined $desc;
-
-		# Create program object
-		my $object = fi::programme->new($id, "fi", $title, $start, $stop);
-		$object->category($category);
-		$object->description($desc);
-
-		# Handle optional episode titles
-		if (my $episode = $programme->look_down("class" => "episodename")) {
-
-	          # Strip starting "Jakso:" text
-		  ($episode = $episode->as_text()) =~ s/^Jakso:\s+//;
-
-		  # Set episode title if it is NOT the same as the title
-		  $object->episode($episode, "fi")
-		    unless $episode eq $title;
-		}
-
-		push(@objects, $object);
-	      }
-	    }
-	  }
-	}
-      }
-    }
-
-    # Done with the HTML tree
-    $root->delete();
-
-    # Fix overlapping programmes
-    fi::programme->fixOverlaps(\@objects);
-
-    return(\@objects);
+       return(\@objects);
+     }
   }
 
   return;
