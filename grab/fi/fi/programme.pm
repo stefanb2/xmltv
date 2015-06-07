@@ -221,6 +221,8 @@ sub dump {
   elsif ((defined $description)               &&
 	 (exists $series_description{$title}) &&
 	 (($left, $special, $right) = ($description =~ $match_description))) {
+    my $desc_subtitle;
+
     # Check for "Kausi <season>. Jakso <episode>/<# of episodes>. <sub-title>...."
     if (my($desc_season, $desc_episode, $remainder) =
 	($description =~ m,^Kausi\s+(\d+)\.\s+Jakso\s+(\d+)(?:/\d+)?\.\s*(.*)$,)) {
@@ -239,8 +241,9 @@ sub dump {
 	# Repeat the above match on remaining description
 	($left, $special, $right) = ($remainder =~ $match_description);
     # Check for "<sub-title>. Kausi <season>, <episode>/<# of episodes>...."
-    } elsif (($left, $desc_season, $desc_episode, $remainder) =
-	($description =~ m!^(.+)\s+Kausi\s+(\d+),\s+(\d+)(?:/\d+)?\.\s*(.*)$!)) {
+    } elsif (($desc_subtitle, $desc_season, $desc_episode, $remainder) =
+	     ($description =~ m!^(.+)\s+Kausi\s+(\d+),\s+(\d+)(?:/\d+)?\.\s*(.*)$!)) {
+	$left    = $desc_subtitle;
 	$season  = $desc_season;
 	$episode = $desc_episode;
 
