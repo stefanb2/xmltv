@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: foxtv.pm,v 2.03 2016/05/15 15:16:16 stefanb2 Exp $
+# VERSION: $Id: foxtv.pm,v 2.04 2016/05/15 16:58:19 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::foxtv;
