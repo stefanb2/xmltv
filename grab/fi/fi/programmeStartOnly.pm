@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: programmeStartOnly.pm,v 2.02 2013/11/04 11:40:17 stefanb2 Exp $
+# VERSION: $Id: programmeStartOnly.pm,v 2.03 2016/05/16 16:20:29 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::programmeStartOnly;
