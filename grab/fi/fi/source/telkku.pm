@@ -12,6 +12,8 @@
 package fi::source::telkku;
 use strict;
 use warnings;
+use Date::Manip qw(UnixDate);
+use JSON qw();
 
 BEGIN {
   our $ENABLED = 1;
@@ -24,11 +26,63 @@ fi::programmeStartOnly->import();
 # Description
 sub description { 'telkku.com' }
 
+my %categories = (
+  SPORTS => "urheilu",
+  MOVIE  => "elokuvat",
+);
+
+# Fetch raw HTML and extract & parse JSON
+sub _getJSON($$$) {
+  my($date, $page, $keys) = @_;
+
+  # Fetch raw text
+  my $text = fetchRaw("http://www.telkku.com/tv-ohjelmat/$date/patch/koko-paiva");
+  if ($text) {
+    #
+    # All data is encoded in JSON in a script node
+    #
+    # <script>
+    #    window.__INITIAL_STATE__ = {...};
+    # </script>
+    #
+    my($match) = ($text =~ /window.__INITIAL_STATE__ = ({.+});/);
+
+    if ($match) {
+      my $decoded = JSON->new->decode($match);
+
+      if (ref($decoded) eq "HASH") {
+	my $data = $decoded;
+
+        #debug(5, JSON->new->pretty->encode($decoded));
+
+	# step through hashes using key sequence
+	foreach my $key (@{$keys}) {
+	  debug(5, "Looking for JSON key $key");
+	  return unless exists $data->{$key};
+	  $data = $data->{$key};
+	}
+	debug(5, "Found JSON data");
+
+	#debug(5, JSON->new->pretty->encode($data));
+	#debug(5, "KEYS: ", join(", ", sort keys %{$data}));
+	return($data);
+      }
+    }
+  }
+
+  return;
+}
+
 # Grab channel list
 sub channels {
 
+  # Fetch & extract JSON sub-part
+  my $data = _getJSON("tanaan", "peruskanavat",
+		      ["channelGroups",
+		       "channelGroupsArray"]);
+
   # TEMPORARY: return fixed channel to pass testing
-  return({ "yle-tv1.telkku.com" => "fi YLE TV1" });
+  return({ "yle-tv1.peruskanavat.telkku.com" => "fi Yle TV1" });
 }
 
 # Grab one day
@@ -36,9 +90,83 @@ sub grab {
   my($self, $id, $yesterday, $today, $tomorrow, $offset) = @_;
 
   # Get channel number from XMLTV id
-  return unless my($channel) = ($id =~ /^([\w-]+)\.telkku\.com$/);
+  return unless my($channel, $group) = ($id =~ /^([\w-]+)\.(\w+)\.telkku\.com$/);
 
-  # TEMPORARY: do nothing to pass testing
+  # Fetch & extract JSON sub-part
+  my $data = _getJSON($today, $group,
+		      ["offeringByChannelGroup",
+		       $group,
+		       "offering",
+		       "publicationsByChannel"]);
+
+  #
+  # Programme data has the following structure
+  #
+  #  [
+  #    {
+  #      channel      => {
+  #                        id => "yle-tv1",
+  #                        ...
+  #                      },
+  #      publications => [
+  #                        {
+  #                           startTime     => "2016-08-18T06:25:00.000+03:00",
+  #                           endTime       => "2016-08-18T06:55:00.000+03:00",
+  #                           title         => "Helil kyläs",
+  #                           description   => "Osa 9/10. Asiaohjelma, mikä ...",
+  #                           programFormat => "MOVIE",
+  #                           ...
+  #                        },
+  #                        ...
+  #                      ]
+  #    },
+  #    ...
+  #  ]
+  #
+  #
+  if (ref($data) eq "ARRAY") {
+    my @objects;
+
+    foreach my $item (@{$data}) {
+      if ((ref($item)                 eq "HASH")  &&
+	  (ref($item->{channel})      eq "HASH")  &&
+	  (ref($item->{publications}) eq "ARRAY") &&
+	  ($item->{channel}->{id} eq $channel)) {
+
+	foreach my $programme (@{$item->{publications}}) {
+	   my($start, $end, $title, $desc) =
+	     @{$programme}{qw(startTime endTime title description)};
+
+	   #debug(5, JSON->new->pretty->encode($programme));
+
+	   if ($start && $end && $title && $desc) {
+             $start = UnixDate($start, "%s");
+	     $end   = UnixDate($end,   "%s");
+
+	     if ($start && $end) {
+	       my $category = $categories{$programme->{programFormat}};
+
+	       debug(3, "List entry $channel.$group ($start -> $end) $title");
+	       debug(4, $desc);
+	       debug(4, $category) if defined $category;
+
+	       # Create program object
+	       my $object = fi::programme->new($id, "fi", $title, $start, $end);
+	       $object->category($category);
+	       $object->description($desc);
+	       push(@objects, $object);
+	     }
+	   }
+	}
+      }
+    }
+
+    # Fix overlapping programmes
+    fi::programme->fixOverlaps(\@objects);
+
+    return(\@objects);
+  }
+
   return;
 }
 
