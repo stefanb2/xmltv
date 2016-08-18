@@ -143,7 +143,8 @@ sub grab {
              $start = UnixDate($start, "%s");
 	     $end   = UnixDate($end,   "%s");
 
-	     if ($start && $end) {
+	     # NOTE: entries with same start and end time are invalid
+	     if ($start && $end && ($start != $end)) {
 	       my $category = $categories{$programme->{programFormat}};
 
 	       debug(3, "List entry $channel.$group ($start -> $end) $title");
