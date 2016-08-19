@@ -81,8 +81,66 @@ sub channels {
 		      ["channelGroups",
 		       "channelGroupsArray"]);
 
-  # TEMPORARY: return fixed channel to pass testing
-  return({ "yle-tv1.peruskanavat.telkku.com" => "fi Yle TV1" });
+  #
+  # Channels data has the following structure
+  #
+  #  [
+  #    {
+  #      slug     => "peruskanavat",
+  #      channels => [
+  #                    {
+  #                      id   => "yle-tv1",
+  #                      name => "Yle TV1",
+  #                      ...
+  #                    },
+  #                    ...
+  #                  ],
+  #      ...
+  #    },
+  #    ...
+  #  ]
+  #
+  if (ref($data) eq "ARRAY") {
+    my %channels;
+    my %duplicates;
+
+    foreach my $item (@{$data}) {
+      if ((ref($item)             eq "HASH")  &&
+	  (exists $item->{slug})              &&
+	  (exists $item->{channels})          &&
+	  (ref($item->{channels}) eq "ARRAY")) {
+	my $group    = $item->{slug};
+	my $channels = $item->{channels};
+
+	if (defined($group) && length($group) &&
+	    (ref($channels) eq "ARRAY")) {
+	  debug(2, "Source telkku.com found group '$group' with " . scalar(@{$channels}) . " channels");
+
+	  foreach my $channel (@{$channels}) {
+	    if (ref($channel) eq "HASH") {
+	      my $id   = $channel->{id};
+	      my $name = $channel->{name};
+
+	      if (defined($id) && length($id)   &&
+		  (not exists $duplicates{$id}) &&
+		  length($name)) {
+		debug(3, "channel '$name' ($id)");
+		$channels{"${id}.${group}.telkku.com"} = "fi $name";
+
+		# Same ID can appear in multiple groups - avoid duplicates
+		$duplicates{$id}++;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    debug(2, "Source telkku.com parsed " . scalar(keys %channels) . " channels");
+    return(\%channels);
+  }
+
+  return;
 }
 
 # Grab one day
@@ -122,7 +180,6 @@ sub grab {
   #    },
   #    ...
   #  ]
-  #
   #
   if (ref($data) eq "ARRAY") {
     my @objects;
