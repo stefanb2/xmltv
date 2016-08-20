@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: telkku.pm,v 2.05 2014/06/21 16:36:15 stefanb2 Exp $
+# VERSION: $Id: telkku.pm,v 2.06 2016/08/20 16:55:13 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::telkku;
