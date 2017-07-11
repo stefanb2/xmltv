@@ -25,8 +25,8 @@ fi::common->import();
 sub description { 'yle.fi' }
 
 my %languages = (
-    "fi" => "ohjelmaopas",
-    "sv" => "programguide",
+    "fi" => [ "areena", "opas"  ],
+    "sv" => [ "arenan", "guide" ],
 );
 
 # Grab channel list
@@ -36,30 +36,37 @@ sub channels {
   # yle.fi offers program guides in multiple languages
   foreach my $code (sort keys %languages) {
 
-    # Fetch & parse HTML
-    my $root = fetchTree("http://$languages{$code}.yle.fi/tv/opas");
+    # Fetch & parse HTML (do not ignore HTML5 <time>)
+    my $root = fetchTree("http://$languages{$code}[0].yle.fi/tv/$languages{$code}[1]",
+                         undef, undef, 1);
     if ($root) {
 
       #
       # Channel list can be found from this list:
       #
-      #  <ul class="channel-lists ...">
-      #    <li><h1 id="yle-tv1">Yle TV1...</h1>...</li>
-      #    <li><h1 id="yle-tv2">Yle TV2...</h1>...</li>
-      #    ...
+      #   <ul class="guide-channels">
+      #    <li class="guide-channels__channel">
+      #	    <h2 class="channel-header">
+      #      <a>...<div class="channel-header__logo " ... aria-label="Yle TV1"></div></a>
+      #	    </h2>
+      #      ...
+      #    </li>
+      #	   ...
       #  </ul>
       #
-      if (my $container = $root->look_down("class" => qr/^channel-lists\s+/)) {
-	if (my @headers = $container->find("h1")) {
-	  debug(2, "Source ${code}.yle.fi found " . scalar(@headers) . " channels");
-	  foreach my $header (@headers) {
-	    my $id   = $header->attr("id");
-	    my $name = $header->as_text();
+      if (my @divs = $root->look_down("_tag"       => "div",
+                                      "aria-label" => qr/^.+$/)) {
+	debug(2, "Source ${code}.yle.fi found " . scalar(@divs) . " channels");
+	foreach my $div (@divs) {
+	  my $name = $div->attr("aria-label");
 
-	    if (defined($id) && length($id) && length($name)) {
-	      debug(3, "channel '$name' ($id)");
-	      $channels{"${id}.${code}.yle.fi"} = "$code $name";
-	    }
+	  if (defined($name) && length($name)) {
+	    # replace space with underscore
+	    my $id;
+	    ($id = $name) =~ s/ /_/g;
+
+	    debug(3, "channel '$name' ($id)");
+	    $channels{"${id}.${code}.yle.fi"} = "$code $name";
 	  }
 	}
       }
@@ -84,7 +91,7 @@ sub grab {
   return unless my($channel, $code) = ($id =~ /^([^.]+)\.([^.]+)\.yle\.fi$/);
 
   # Fetch & parse HTML (do not ignore HTML5 <time>)
-  my $root = fetchTree("http://$languages{$code}.yle.fi/tv/opas?t=" . $today->ymdd(),
+  my $root = fetchTree("http://$languages{$code}[0].yle.fi/tv/$languages{$code}[1]?t=" . $today->ymdd(),
 		       undef, undef, 1);
   if ($root) {
     my @objects;
