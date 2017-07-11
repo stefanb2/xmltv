@@ -61,9 +61,9 @@ sub channels {
 	  my $name = $div->attr("aria-label");
 
 	  if (defined($name) && length($name)) {
-	    # replace space with underscore
+	    # replace space with hyphen
 	    my $id;
-	    ($id = $name) =~ s/ /_/g;
+	    ($id = $name) =~ s/ /-/g;
 
 	    debug(3, "channel '$name' ($id)");
 	    $channels{"${id}.${code}.yle.fi"} = "$code $name";
