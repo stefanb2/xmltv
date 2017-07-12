@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: yle.pm,v 2.11 2016/05/15 15:16:16 stefanb2 Exp $
+# VERSION: $Id: yle.pm,v 2.12 2017/07/12 19:33:02 stefanb2 Exp $
 #
 # INSERT FROM HERE ############################################################
 package fi::source::yle;
