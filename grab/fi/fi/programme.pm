@@ -6,7 +6,7 @@
 #
 # Setup
 #
-# VERSION: $Id: programme.pm,v 2.10 2016/08/20 16:55:13 stefanb2 Exp $
+# VERSION: $Id$
 #
 # INSERT FROM HERE ############################################################
 package fi::programme;
